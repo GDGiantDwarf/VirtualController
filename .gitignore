@@ -1,0 +1,49 @@
+# Build directories
+build/
+bin/
+lib/
+*.user
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Qt
+*.qm
+*.qrc.depends
+*.pro.user*
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+
+# Compiled Object files
+*.o
+*.obj
+*.exe
+*.out
+*.app
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.VC.opendb
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Game files (optional - remove if you want to version control games)
+games/*/
+!games/.gitkeep
+
+# Logs
+*.log
