@@ -41,9 +41,9 @@ qrc_*.cpp
 Thumbs.db
 desktop.ini
 
-# Game files (optional - remove if you want to version control games)
-games/*/
-!games/.gitkeep
+# Game files ( add back when games are hosted on server)
+#games/*/
+#!games/.gitkeep
 
 # Logs
 *.log
