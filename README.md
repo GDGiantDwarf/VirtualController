@@ -1,171 +1,130 @@
-# Game Library Launcher
+# VirtualController v2.0
 
-Un launcher de jeux avec support de contrôleur virtuel, créé en Qt6 et C++.
+Système de contrôleurs virtuels multi-joueurs utilisant ViGEmBus pour Windows.
 
-## Fonctionnalités
-
-### Onglet "Connect a Controller"
-- Interface pour connecter un contrôleur
-- Placeholder pour QR code (fonctionnalité future)
-- Bouton pour ouvrir une fenêtre de contrôleur virtuel avec des boutons cliquables
-- La fenêtre du contrôleur virtuel simule une manette avec :
-  - D-Pad (↑↓←→)
-  - Boutons d'action (A, B, X, Y)
-  - Boutons shoulder (LB, RB)
-  - Boutons système (Start, Select)
-
-### Onglet "Game Library"
-- Scanne automatiquement le dossier `./games/`
-- Affiche tous les jeux valides trouvés
-- Un jeu est valide s'il contient :
-  - Un dossier avec le nom du jeu
-  - Un fichier `.exe` avec le même nom
-  - Un fichier `.ico` avec le même nom
-- Cliquer sur un jeu lance son exécutable
-- Bouton "Refresh" pour recharger la liste
-
-## Structure des dossiers de jeux
+## 📁 Structure
 
 ```
-./games/
-├── snake/
-│   ├── snake.exe
-│   └── snake.ico
-├── pong/
-│   ├── pong.exe
-│   └── pong.ico
-└── breakout/
-    ├── breakout.exe
-    └── breakout.ico
+VirtualController/
+├── src/
+│   ├── core/         # Application principale et fenêtre
+│   ├── ui/           # Composants UI (tabs, fenêtres de test)
+│   ├── input/        # LocalInputSource (temporaire - sera remplacé par l'app mobile)
+│   ├── managers/     # MultiControllerManager (gestion ViGEm)
+│   ├── interfaces/   # IInputSource (abstraction des sources d'input)
+│   └── scanner/      # Découverte de jeux dans ./games/
+├── games/            # Dossiers de jeux (format: nom_jeu/nom_jeu.exe)
+└── docs/             # Documentation technique détaillée
 ```
 
-## Prérequis
+## 🔧 Prérequis
 
-- CMake 3.16 ou supérieur
-- Qt 6 (Core, Widgets, Gui)
-- Compilateur C++17 compatible (MSVC, GCC, Clang)
+- Windows 10/11 (64-bit)
+- Visual Studio 2019+ avec C++
+- Qt 6.6+ (Core, Widgets, Gui)
+- CMake 3.16+
+- [ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases)
 
-### Installation de Qt6
-
-**Windows:**
-```bash
-# Via Qt Installer
-# Télécharger depuis https://www.qt.io/download-qt-installer
-
-# Ou via vcpkg
-vcpkg install qt6-base:x64-windows
-```
-
-**Linux (Ubuntu/Debian):**
-```bash
-sudo apt-get update
-sudo apt-get install qt6-base-dev qt6-base-dev-tools
-```
-
-**macOS:**
-```bash
-brew install qt@6
-```
-
-## Compilation
-
-### Windows (Visual Studio)
+## 🚀 Build
 
 ```bash
-mkdir build
-cd build
+mkdir build && cd build
 cmake .. -G "Visual Studio 17 2022" -A x64
 cmake --build . --config Release
 ```
 
-### Linux / macOS
+Exécutable : `build/bin/Release/GameLibraryLauncher.exe`
 
-```bash
-mkdir build
-cd build
-cmake ..
-make
+## 🎮 Utilisation
+
+1. Lancer GameLibraryLauncher.exe
+2. Onglet "Local Controller Management" → Ajouter des contrôleurs (max 4)
+3. Tester avec les fenêtres de contrôle (provisoires)
+4. Lancer un jeu depuis l'onglet "Game Library"
+
+### Format des Jeux
+
+Les jeux doivent être dans `./games/` avec cette structure :
+```
+games/
+└── nom_jeu/
+    └── nom_jeu.exe    # Exécutable (nom doit correspondre au dossier)
 ```
 
-## Exécution
+L'icône `.ico` est optionnelle. Le scanner cherche uniquement les `.exe` correspondants.
 
-```bash
-# Windows
-.\build\bin\Release\GameLibraryLauncher.exe
+## 🏗️ Architecture
 
-# Linux / macOS
-./build/bin/GameLibraryLauncher
+### Modules Clés
+
+**`MultiControllerManager`** : Gère jusqu'à 4 contrôleurs ViGEm avec retry logic (3 tentatives)
+
+**`IInputSource`** : Interface abstraite pour les sources d'input
+- Actuel : `LocalInputSource` (UI de test, temporaire)
+- Future : Source réseau depuis application mobile
+
+**`GameScanner`** : Découverte automatique des jeux
+- Scan de `./games/` pour trouver les exécutables
+- Préparé pour téléchargement distant futur
+
+### Workflow
+
+```
+LocalInputSource → MultiControllerManager → ViGEm → Jeux
+(fenêtre test)     (gère 4 contrôleurs)     (driver)
 ```
 
-## Structure du projet
+## 📝 Développement
 
-```
-game_library/
-├── CMakeLists.txt
-├── README.md
-├── src/
-│   ├── main.cpp
-│   ├── MainWindow.h/cpp          # Fenêtre principale avec onglets
-│   ├── GameLibraryTab.h/cpp      # Onglet bibliothèque de jeux
-│   ├── ControllerTab.h/cpp       # Onglet connexion contrôleur
-│   ├── VirtualControllerWindow.h/cpp  # Fenêtre contrôleur virtuel
-│   ├── GameScanner.h/cpp         # Scanner de jeux
-│   └── GameInfo.h                # Structure de données
-└── games/                        # Dossier des jeux (à créer)
+### Ajouter un Module
+
+1. Créer le dossier : `src/mon_module/`
+2. Ajouter fichiers `.h` et `.cpp`
+3. Mettre à jour `CMakeLists.txt` :
+```cmake
+set(MON_MODULE_SOURCES src/mon_module/MaClasse.cpp)
+set(MON_MODULE_HEADERS src/mon_module/MaClasse.h)
+
+# Ajouter à ALL_SOURCES et include_directories
 ```
 
-## Utilisation
+### Conventions
 
-1. **Lancer l'application**
-2. **Onglet "Connect a Controller"** :
-   - Cliquez sur "Open Virtual Controller (Test)"
-   - Une fenêtre s'ouvre avec des boutons simulant une manette
-   - Cliquez sur les boutons pour tester (les événements sont loggés dans la console)
-3. **Onglet "Game Library"** :
-   - La liste des jeux se remplit automatiquement
-   - Cliquez sur un jeu pour le lancer
-   - Utilisez "Refresh" pour recharger la liste après avoir ajouté des jeux
+- Headers/Sources : PascalCase (`MaClasse.h`, `MaClasse.cpp`)
+- Dossiers : snake_case (`mon_module/`)
+- Includes : Pas de chemins relatifs grâce aux include directories CMake
 
-## Prochaines étapes
+```cpp
+// ✅ Bon
+#include "IInputSource.h"
+#include "MultiControllerManager.h"
 
-Pour intégrer ViGEm (manette virtuelle réelle) :
+// ❌ Éviter
+#include "../interfaces/IInputSource.h"
+```
 
-1. Installer ViGEmBus : https://github.com/nefarius/ViGEmBus/releases
-2. Ajouter ViGEmClient au projet :
-   ```cmake
-   find_package(ViGEmClient REQUIRED)
-   target_link_libraries(GameLibraryLauncher ViGEmClient)
-   ```
-3. Implémenter dans `ControllerTab::onControllerButtonPressed/Released` :
-   ```cpp
-   #include <ViGEm/Client.h>
-   
-   // Créer un contrôleur Xbox 360 virtuel
-   PVIGEM_CLIENT client = vigem_alloc();
-   PVIGEM_TARGET controller = vigem_target_x360_alloc();
-   
-   // Envoyer les inputs
-   XUSB_REPORT report;
-   report.wButtons = XUSB_GAMEPAD_A; // Exemple
-   vigem_target_x360_update(client, controller, report);
-   ```
+## 🎯 Roadmap
 
-## Notes de développement
+- [x] Support 4 contrôleurs simultanés
+- [x] Architecture modulaire
+- [x] Stick analogique + D-Pad 8 directions
+- [ ] Application mobile (remplacement LocalInputSource)
+- [ ] Système de téléchargement de jeux distant
+- [ ] Tests unitaires
 
-- Les événements des boutons du contrôleur virtuel sont actuellement loggés dans la console
-- Le système est prêt pour l'intégration avec ViGEm
-- L'architecture permet d'ajouter facilement la connexion smartphone via réseau local
-- Les jeux s'exécutent dans des processus séparés pour éviter les crashes du launcher
+## 📚 Documentation Détaillée
 
-## TODO
+- `docs/ARCHITECTURE_MODULAIRE.md` : Architecture complète
+- `docs/modifications_documentation.md` : Changements techniques
+- `docs/guide_cicd_basique.md` : CI/CD et automatisation
 
-- [ ] Implémenter ViGEm pour créer une vraie manette virtuelle
-- [ ] Ajouter la génération de QR code pour connexion smartphone
-- [ ] Implémenter le serveur réseau pour recevoir les inputs du smartphone
-- [ ] Ajouter des métadonnées de jeux (description, screenshot, etc.)
-- [ ] Créer un système de favoris
-- [ ] Ajouter la détection automatique de nouveaux jeux
+## ⚠️ Notes
 
-## Licence
+- **LocalInputSource** : Interface de test temporaire, sera remplacée par l'app mobile
+- **Windows uniquement** : ViGEmBus est Windows-only, pas de portabilité prévue
+- **Build folder** : Exclu du repo (.gitignore), ne pas commiter
 
-Projet étudiant - Libre d'utilisation à des fins éducatives.
+---
+
+**Version** : 2.0.0  
+**License** : Voir projet original VirtualController

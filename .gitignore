@@ -47,3 +47,7 @@ desktop.ini
 
 # Logs
 *.log
+
+# lib files
+*.dll
+*.lib

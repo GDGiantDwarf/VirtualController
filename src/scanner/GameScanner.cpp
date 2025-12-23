@@ -28,10 +28,8 @@ QVector<GameInfo> GameScanner::scanGames(const QString& gamesDirectory) {
         
         if (isValidGameFolder(folderPath, folderName)) {
             GameInfo game = createGameInfo(folderPath, folderName);
-            if (game.isValid()) {
-                games.append(game);
-                qDebug() << "Found game:" << game.name;
-            }
+            games.append(game);
+            qDebug() << "Found game:" << game.name << "at" << game.executablePath;
         }
     }
     
@@ -45,23 +43,14 @@ bool GameScanner::isValidGameFolder(const QString& folderPath, const QString& fo
     QString exeName = folderName + ".exe";
     QString exePath = folder.filePath(exeName);
     
-    // Check for .ico file with same name as folder
-    QString icoName = folderName + ".ico";
-    QString icoPath = folder.filePath(icoName);
-    
     QFileInfo exeInfo(exePath);
-    QFileInfo icoInfo(icoPath);
     
-    bool valid = exeInfo.exists() && exeInfo.isFile() && 
-                 icoInfo.exists() && icoInfo.isFile();
-    
-    if (!valid) {
-        qDebug() << "Invalid game folder:" << folderName 
-                 << "- exe exists:" << exeInfo.exists()
-                 << "- ico exists:" << icoInfo.exists();
+    if (!exeInfo.exists() || !exeInfo.isFile()) {
+        qDebug() << "Game folder" << folderName << "missing executable:" << exeName;
+        return false;
     }
     
-    return valid;
+    return true;
 }
 
 GameInfo GameScanner::createGameInfo(const QString& folderPath, const QString& folderName) {
@@ -70,5 +59,6 @@ GameInfo GameScanner::createGameInfo(const QString& folderPath, const QString& f
     QString exePath = folder.filePath(folderName + ".exe");
     QString icoPath = folder.filePath(folderName + ".ico");
     
+    // Icon is optional, exe is mandatory
     return GameInfo(folderName, folderPath, exePath, icoPath);
 }

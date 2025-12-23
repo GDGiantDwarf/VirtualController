@@ -4,6 +4,7 @@
 #include <QString>
 #include <QIcon>
 #include <QMetaType>
+#include <QFileInfo>
 
 struct GameInfo {
     QString name;
@@ -22,13 +23,17 @@ struct GameInfo {
         , folderPath(folder)
         , executablePath(exe)
         , iconPath(ico)
-        , icon(ico)
-    {}
+    {
+        // Load icon only if it exists (optional)
+        QFileInfo icoFile(ico);
+        if (icoFile.exists() && icoFile.isFile()) {
+            icon = QIcon(ico);
+        }
+    }
     
     bool isValid() const {
-        return !name.isEmpty() && 
-               !executablePath.isEmpty() && 
-               !iconPath.isEmpty();
+        // Only exe is mandatory, icon is optional
+        return !name.isEmpty() && !executablePath.isEmpty();
     }
 };
 

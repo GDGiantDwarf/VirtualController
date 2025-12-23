@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(GameLibraryLauncher VERSION 1.0 LANGUAGES CXX)
+project(GameLibraryLauncher VERSION 2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,7 +13,6 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
 
 # Find ViGEmClient
-# Try to find ViGEmClient headers
 find_path(VIGEM_INCLUDE_DIR ViGEm/Client.h
     PATHS 
         "C:/ViGEmClient/include"
@@ -23,7 +22,6 @@ find_path(VIGEM_INCLUDE_DIR ViGEm/Client.h
     NO_DEFAULT_PATH
 )
 
-# Try to find ViGEmClient library
 find_library(VIGEM_LIBRARY
     NAMES ViGEmClient
     PATHS 
@@ -42,41 +40,104 @@ if(VIGEM_INCLUDE_DIR AND VIGEM_LIBRARY)
     set(VIGEM_FOUND TRUE)
 else()
     message(WARNING "ViGEmClient not found.")
-    if(NOT VIGEM_INCLUDE_DIR)
-        message(WARNING "  - Include directory not found. Expected: C:/ViGEmClient/include/ViGEm/Client.h")
-    endif()
-    if(NOT VIGEM_LIBRARY)
-        message(WARNING "  - Library not found. Expected: C:/ViGEmClient/build/lib/Release/ViGEmClient.lib")
-    endif()
-    message(WARNING "Virtual gamepad functionality will be disabled.")
     set(VIGEM_FOUND FALSE)
 endif()
 
-# Source files
-set(SOURCES
-    src/main.cpp
-    src/MainWindow.cpp
-    src/GameLibraryTab.cpp
-    src/ControllerTab.cpp
-    src/VirtualControllerWindow.cpp
-    src/VirtualGamepadManager.cpp
-    src/GameScanner.cpp
+# ============================================================================
+# Source files organized by module
+# ============================================================================
+
+# Core application files
+set(CORE_SOURCES
+    src/core/main.cpp
+    src/core/MainWindow.cpp
 )
 
-set(HEADERS
-    src/MainWindow.h
-    src/GameLibraryTab.h
-    src/ControllerTab.h
-    src/VirtualControllerWindow.h
-    src/VirtualGamepadManager.h
-    src/GameScanner.h
-    src/GameInfo.h
+set(CORE_HEADERS
+    src/core/MainWindow.h
 )
 
+# UI components
+set(UI_SOURCES
+    src/ui/VirtualControllerWindow.cpp
+    src/ui/ControllerTab.cpp
+    src/ui/GameLibraryTab.cpp
+)
+
+set(UI_HEADERS
+    src/ui/VirtualControllerWindow.h
+    src/ui/ControllerTab.h
+    src/ui/GameLibraryTab.h
+)
+
+# Input sources
+set(INPUT_SOURCES
+    src/input/LocalInputSource.cpp
+)
+
+set(INPUT_HEADERS
+    src/input/LocalInputSource.h
+)
+
+# Managers
+set(MANAGER_SOURCES
+    src/managers/MultiControllerManager.cpp
+)
+
+set(MANAGER_HEADERS
+    src/managers/MultiControllerManager.h
+)
+
+# Interfaces
+set(INTERFACE_HEADERS
+    src/interfaces/IInputSource.h
+)
+
+# Scanner
+set(SCANNER_SOURCES
+    src/scanner/GameScanner.cpp
+)
+
+set(SCANNER_HEADERS
+    src/scanner/GameScanner.h
+    src/scanner/GameInfo.h
+)
+
+# Combine all sources
+set(ALL_SOURCES
+    ${CORE_SOURCES}
+    ${UI_SOURCES}
+    ${INPUT_SOURCES}
+    ${MANAGER_SOURCES}
+    ${SCANNER_SOURCES}
+)
+
+set(ALL_HEADERS
+    ${CORE_HEADERS}
+    ${UI_HEADERS}
+    ${INPUT_HEADERS}
+    ${MANAGER_HEADERS}
+    ${INTERFACE_HEADERS}
+    ${SCANNER_HEADERS}
+)
+
+# ============================================================================
 # Create executable
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+# ============================================================================
 
-# Add include directories
+add_executable(${PROJECT_NAME} ${ALL_SOURCES} ${ALL_HEADERS})
+
+# Add include directories for each module
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/input
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/managers
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/interfaces
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/scanner
+)
+
+# Add ViGEm include if found
 if(VIGEM_FOUND)
     target_include_directories(${PROJECT_NAME} PRIVATE ${VIGEM_INCLUDE_DIR})
     target_compile_definitions(${PROJECT_NAME} PRIVATE VIGEM_AVAILABLE)
@@ -92,7 +153,6 @@ target_link_libraries(${PROJECT_NAME}
 # Link ViGEmClient if found
 if(VIGEM_FOUND)
     target_link_libraries(${PROJECT_NAME} ${VIGEM_LIBRARY})
-    # Windows libraries required by ViGEm
     if(WIN32)
         target_link_libraries(${PROJECT_NAME} setupapi)
     endif()
@@ -108,3 +168,17 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
 )
+
+# ============================================================================
+# Module summary
+# ============================================================================
+
+message(STATUS "=== VirtualController v2.0 Build Configuration ===")
+message(STATUS "Modules:")
+message(STATUS "  - Core:       ${CORE_SOURCES}")
+message(STATUS "  - UI:         ${UI_SOURCES}")
+message(STATUS "  - Input:      ${INPUT_SOURCES}")
+message(STATUS "  - Managers:   ${MANAGER_SOURCES}")
+message(STATUS "  - Scanner:    ${SCANNER_SOURCES}")
+message(STATUS "  - Interfaces: ${INTERFACE_HEADERS}")
+message(STATUS "==================================================")
