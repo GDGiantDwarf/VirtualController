@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/controller_service.dart';
+import 'qr_scan_screen.dart';
+import 'dart:convert';
 
 class ConnectionScreen extends StatefulWidget {
   const ConnectionScreen({super.key});
@@ -53,6 +55,76 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
         backgroundColor: Colors.red,
       ),
     );
+  }
+
+  Map<String, dynamic>? _parsePairingPayload(String raw) {
+    try {
+      // Try JSON first: {"host":"ip","port":8765}
+      final data = json.decode(raw);
+      if (data is Map && data['host'] is String) {
+        final host = (data['host'] as String).trim();
+        final port = (data['port'] is int)
+            ? data['port'] as int
+            : int.tryParse('${data['port']}');
+        if (host.isNotEmpty && port != null) {
+          return {'host': host, 'port': port};
+        }
+      }
+    } catch (_) {
+      // Not JSON, fall through
+    }
+
+    try {
+      // Accept ws://host:port[/path]
+      if (raw.startsWith('ws://') || raw.startsWith('wss://')) {
+        final uri = Uri.parse(raw);
+        if (uri.host.isNotEmpty) {
+          final port = uri.port == 0 ? 8765 : uri.port;
+          return {'host': uri.host, 'port': port};
+        }
+      }
+    } catch (_) {}
+
+    final s = raw.trim();
+    // host:port or ip:port
+    if (s.contains(':')) {
+      final parts = s.split(':');
+      if (parts.length >= 2) {
+        final host = parts[0].trim();
+        final port = int.tryParse(parts[1].trim());
+        if (host.isNotEmpty && port != null) {
+          return {'host': host, 'port': port};
+        }
+      }
+    }
+
+    // plain host/IP => default port 8765
+    if (s.isNotEmpty) {
+      return {'host': s, 'port': 8765};
+    }
+
+    return null;
+  }
+
+  Future<void> _scanAndConnect() async {
+    if (_isConnecting) return;
+
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const QrScanScreen()),
+    );
+
+    if (result == null) return;
+
+    final parsed = _parsePairingPayload(result);
+    if (parsed == null) {
+      _showError('Invalid QR content. Expected ws://host:port or JSON.');
+      return;
+    }
+
+    _hostController.text = parsed['host'] as String;
+    _portController.text = (parsed['port'] as int).toString();
+
+    await _connect();
   }
 
   @override
@@ -124,35 +196,64 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _isConnecting ? null : _connect,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.deepPurple,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 50,
+                              child: ElevatedButton(
+                                onPressed: _isConnecting ? null : _connect,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepPurple,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: _isConnecting
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'CONNECT',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                              ),
                             ),
                           ),
-                          child: _isConnecting
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SizedBox(
+                              height: 50,
+                              child: OutlinedButton.icon(
+                                onPressed: _isConnecting ? null : _scanAndConnect,
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.deepPurple),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                )
-                              : const Text(
-                                  'CONNECT',
+                                ),
+                                icon: const Icon(Icons.qr_code, color: Colors.deepPurple),
+                                label: const Text(
+                                  'SCAN QR',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
+                                    color: Colors.deepPurple,
                                   ),
                                 ),
-                        ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       Consumer<ControllerService>(
@@ -181,9 +282,8 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '1. Open the desktop app\n'
-                        '2. Note the IP address shown\n'
-                        '3. Enter it above and tap Connect',
+                        'Option A: Enter IP/Port and tap Connect.\n'
+                        'Option B: Tap Scan QR and point your camera at the code.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 12,
