@@ -5,10 +5,15 @@ Flutter-based mobile application that acts as a virtual game controller for the 
 ## Features
 
 - **WebSocket Connection**: Lightweight real-time communication with desktop app
-- **Standard Controller Layout**: Xbox-style button layout (A, B, X, Y, D-Pad, LB, RB, Start, Select)
+- **Standard Controller Layout**: Xbox-style button layout with dual joysticks
+  - Face buttons: A, B, X, Y
+  - Shoulder buttons: LB, RB, LT, RT (4 triggers)
+  - Dual analog joysticks with analog stick buttons
+  - D-Pad and Start/Select
+- **QR Code Pairing**: Scan QR from desktop app for automatic IP/port configuration
+- **Manual Pairing**: Or manually enter IP address and port
 - **Haptic Feedback**: Vibration feedback for button presses
 - **Landscape Mode**: Optimized for controller usage
-- **Easy Pairing**: Simple IP/Port connection interface
 
 ## Requirements
 
@@ -51,6 +56,14 @@ flutter build ios --release
 
 ## Usage
 
+### Quick Start (QR Code)
+1. Run desktop app with test server
+2. Open mobile controller app
+3. Tap "SCAN QR" and point camera at the QR code shown on desktop
+4. App auto-fills IP/port and connects automatically
+5. Use controller buttons to play!
+
+### Manual Connection
 1. Ensure desktop app is running and showing its IP address
 2. Open mobile controller app
 3. Enter desktop IP address and port (default: 8765)
@@ -113,8 +126,7 @@ Lightweight packages chosen for minimal app size:
 
 - **web_socket_channel**: WebSocket communication
 - **provider**: State management (lightweight)
-- **vibration**: Haptic feedback
-- **network_info_plus**: Network utilities
+- **mobile_scanner**: QR code scanning for pairing
 
 ## Configuration
 
@@ -128,8 +140,7 @@ final _portController = TextEditingController(text: 'YOUR_PORT');
 
 ## Next Steps
 
-- QR code scanning for automatic pairing
-- Analog stick support with joystick widgets
 - Custom button mapping
 - Connection history
+- Rumble/force feedback from desktop
 - Battery indicator passthrough
