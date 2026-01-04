@@ -18,11 +18,8 @@ except Exception:
 def get_local_ip():
     """Get the local IP address of this machine"""
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
+        hostname = socket.gethostname()
+        return socket.gethostbyname(hostname)
     except Exception:
         return "localhost"
 
