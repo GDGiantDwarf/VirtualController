@@ -1,130 +1,119 @@
 # VirtualController v2.0
 
-Système de contrôleurs virtuels multi-joueurs utilisant ViGEmBus pour Windows.
+Multi-player virtual controller system using ViGEmBus for Windows with client-server network architecture.
 
-## 📁 Structure
+## Components
 
-```
-VirtualController/
-├── src/
-│   ├── core/         # Application principale et fenêtre
-│   ├── ui/           # Composants UI (tabs, fenêtres de test)
-│   ├── input/        # LocalInputSource (temporaire - sera remplacé par l'app mobile)
-│   ├── managers/     # MultiControllerManager (gestion ViGEm)
-│   ├── interfaces/   # IInputSource (abstraction des sources d'input)
-│   └── scanner/      # Découverte de jeux dans ./games/
-├── games/            # Dossiers de jeux (format: nom_jeu/nom_jeu.exe)
-└── docs/             # Documentation technique détaillée
-```
+- **Launcher** (`launcher/`) - Qt6 game launcher with local controller management (ViGEm)
+- **Server** (`server/`) - TCP game server for multiplayer logic
+- **Games** (`games/snake/`) - Networked game clients (SFML)
 
-## 🔧 Prérequis
+## Prerequisites
 
 - Windows 10/11 (64-bit)
-- Visual Studio 2019+ avec C++
-- Qt 6.6+ (Core, Widgets, Gui)
+- Visual Studio 2022 with C++
 - CMake 3.16+
-- [ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases)
+- Qt 6.10+ - for launcher
+- SFML 3.0+ - for games
+- [ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases) - for launcher
 
-## 🚀 Build
+## Quick Start
 
-```bash
-mkdir build && cd build
+### Build Everything
+
+```powershell
+# Launcher (requires Qt6 and ViGEm paths - see BUILD.md)
+cd launcher/build
+cmake .. -G "Visual Studio 17 2022" -A x64 `
+  -DVIGEM_SDK="<path-to-vigem>" `
+  -DQt6_DIR="<path-to-qt6>/lib/cmake/Qt6"
+cmake --build . --config Release
+
+# Server (no dependencies)
+cd ../../server/build
 cmake .. -G "Visual Studio 17 2022" -A x64
+cmake --build . --config Release
+
+# Snake (requires SFML path - see BUILD.md)
+cd ../../games/snake/build
+cmake .. -G "Visual Studio 17 2022" -A x64 `
+  -DSFML_DIR="<path-to-sfml>/lib/cmake/SFML"
 cmake --build . --config Release
 ```
 
-Exécutable : `build/bin/Release/GameLibraryLauncher.exe`
+**Note**: Replace `<path-to-*>` with your actual installation paths
 
-## 🎮 Utilisation
+## Running the Application
 
-1. Lancer GameLibraryLauncher.exe
-2. Onglet "Local Controller Management" → Ajouter des contrôleurs (max 4)
-3. Tester avec les fenêtres de contrôle (provisoires)
-4. Lancer un jeu depuis l'onglet "Game Library"
+```powershell
+# Start the server (in terminal 1)
+.\server\build\bin\Release\GameServer.exe
 
-### Format des Jeux
+# Start the launcher (in terminal 2)
+.\launcher\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8765
 
-Les jeux doivent être dans `./games/` avec cette structure :
+# Launch Snake from the launcher UI
+# Or run directly:
+.\games\snake\build\bin\Release\snake.exe 127.0.0.1 8765
+```
+
+## Debug Proxy (Optional)
+
+Monitor all network traffic in real-time:
+
+```powershell
+python debug_proxy.py
+
+# Then connect launcher to proxy instead:
+.\launcher\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8766
+```
+
+## Architecture
+
+### Project Structure
+
+```
+VirtualController/
+├── launcher/          # Qt6 launcher + ViGEm controller manager
+│   ├── src/
+│   └── build/
+├── server/            # TCP game server
+│   ├── src/
+│   └── build/
+└── games/snake/       # SFML networked game client
+    ├── snake_client.cpp
+    └── build/
+```
+
+### Multiplayer Flow
+
+```
+┌─────────────┐         ┌──────────────┐         ┌─────────────┐
+│  Client 1   │         │              │         │  Client 2   │
+│   (SFML)    │◄───────►│ Game Server  │◄───────►│   (SFML)    │
+│             │  TCP    │ (Game Logic) │  TCP    │             │
+└─────────────┘         └──────────────┘         └─────────────┘
+      ↑                                                  ↑
+   Keyboard/                                        Keyboard/
+   Joystick                                         Joystick
+```
+
+- **Server**: Game logic, collision detection, state management (120ms tick)
+- **Client**: Input capture, rendering, JSON protocol over TCP
+- **Launcher**: Discovers games, manages local virtual controllers
+
+## Development
+
+### Adding Games
+
+Games must follow this structure:
 ```
 games/
-└── nom_jeu/
-    └── nom_jeu.exe    # Exécutable (nom doit correspondre au dossier)
+└── your_game/
+    ├── your_game.exe          # Must match folder name
+    └── build/                 # Build directory
+        └── bin/Release/
+            └── your_game.exe
 ```
 
-L'icône `.ico` est optionnelle. Le scanner cherche uniquement les `.exe` correspondants.
-
-## 🏗️ Architecture
-
-### Modules Clés
-
-**`MultiControllerManager`** : Gère jusqu'à 4 contrôleurs ViGEm avec retry logic (3 tentatives)
-
-**`IInputSource`** : Interface abstraite pour les sources d'input
-- Actuel : `LocalInputSource` (UI de test, temporaire)
-- Future : Source réseau depuis application mobile
-
-**`GameScanner`** : Découverte automatique des jeux
-- Scan de `./games/` pour trouver les exécutables
-- Préparé pour téléchargement distant futur
-
-### Workflow
-
-```
-LocalInputSource → MultiControllerManager → ViGEm → Jeux
-(fenêtre test)     (gère 4 contrôleurs)     (driver)
-```
-
-## 📝 Développement
-
-### Ajouter un Module
-
-1. Créer le dossier : `src/mon_module/`
-2. Ajouter fichiers `.h` et `.cpp`
-3. Mettre à jour `CMakeLists.txt` :
-```cmake
-set(MON_MODULE_SOURCES src/mon_module/MaClasse.cpp)
-set(MON_MODULE_HEADERS src/mon_module/MaClasse.h)
-
-# Ajouter à ALL_SOURCES et include_directories
-```
-
-### Conventions
-
-- Headers/Sources : PascalCase (`MaClasse.h`, `MaClasse.cpp`)
-- Dossiers : snake_case (`mon_module/`)
-- Includes : Pas de chemins relatifs grâce aux include directories CMake
-
-```cpp
-// ✅ Bon
-#include "IInputSource.h"
-#include "MultiControllerManager.h"
-
-// ❌ Éviter
-#include "../interfaces/IInputSource.h"
-```
-
-## 🎯 Roadmap
-
-- [x] Support 4 contrôleurs simultanés
-- [x] Architecture modulaire
-- [x] Stick analogique + D-Pad 8 directions
-- [ ] Application mobile (remplacement LocalInputSource)
-- [ ] Système de téléchargement de jeux distant
-- [ ] Tests unitaires
-
-## 📚 Documentation Détaillée
-
-- `docs/ARCHITECTURE_MODULAIRE.md` : Architecture complète
-- `docs/modifications_documentation.md` : Changements techniques
-- `docs/guide_cicd_basique.md` : CI/CD et automatisation
-
-## ⚠️ Notes
-
-- **LocalInputSource** : Interface de test temporaire, sera remplacée par l'app mobile
-- **Windows uniquement** : ViGEmBus est Windows-only, pas de portabilité prévue
-- **Build folder** : Exclu du repo (.gitignore), ne pas commiter
-
----
-
-**Version** : 2.0.0  
-**License** : Voir projet original VirtualController
+The launcher's GameScanner automatically discovers games in the `games/` folder.

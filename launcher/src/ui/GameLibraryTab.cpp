@@ -3,9 +3,11 @@
 #include <QDebug>
 #include <QFileInfo>  // ← AJOUTEZ CETTE LIGNE
 
-GameLibraryTab::GameLibraryTab(QWidget* parent)
+GameLibraryTab::GameLibraryTab(QWidget* parent, const QString& serverHostIn, int serverPortIn)
     : QWidget(parent)
     , scanner(new GameScanner(this))
+    , serverHost(serverHostIn)
+    , serverPort(serverPortIn)
 {
     setupUI();
     loadGames();
@@ -64,49 +66,46 @@ void GameLibraryTab::onRefreshClicked() {
 void GameLibraryTab::launchGame(const GameInfo& game) {
     qDebug() << "Launching game:" << game.name << "at" << game.executablePath;
     
-    QProcess* process = new QProcess(this);
-    
-    // Set working directory to game folder
-    QFileInfo exeInfo(game.executablePath);
-    process->setWorkingDirectory(exeInfo.absolutePath());
-    
-    // Connect to handle process finish
-    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            [this, game, process](int exitCode, QProcess::ExitStatus exitStatus) {
-                if (exitStatus == QProcess::CrashExit) {
-                    QMessageBox::warning(this, "Game Crashed", 
-                        QString("Game '%1' crashed!").arg(game.name));
-                }
-                qDebug() << "Game" << game.name << "exited with code" << exitCode;
-                process->deleteLater();
-            });
-    
-    // Connect error handler
-    connect(process, &QProcess::errorOccurred,
-            [this, game, process](QProcess::ProcessError error) {
-                QString errorMsg;
-                switch (error) {
-                    case QProcess::FailedToStart:
-                        errorMsg = "Failed to start. Check if the executable exists.";
-                        break;
-                    case QProcess::Crashed:
-                        errorMsg = "Game crashed during execution.";
-                        break;
-                    default:
-                        errorMsg = "An error occurred.";
-                        break;
-                }
-                QMessageBox::critical(this, "Launch Error", 
-                    QString("Failed to launch '%1': %2").arg(game.name, errorMsg));
-                process->deleteLater();
-            });
-    
-    // Start the game
-    process->start(game.executablePath);
-    
-    if (!process->waitForStarted(3000)) {
+    try {
+        // Set working directory to game folder
+        QFileInfo exeInfo(game.executablePath);
+        QString workingDir = exeInfo.absolutePath();
+
+        if (!exeInfo.exists() || !exeInfo.isFile()) {
+            QMessageBox::critical(this, "Launch Error",
+                QString("Executable not found for '%1'.\nExpected: %2")
+                    .arg(game.name, game.executablePath));
+            return;
+        }
+        
+        qDebug() << "Working directory:" << workingDir;
+        qDebug() << "Executable:" << game.executablePath;
+        
+        // Start the game with server host/port arguments
+        QStringList args;
+        args << serverHost << QString::number(serverPort);
+        
+        qDebug() << "Starting process with args:" << args;
+        
+        // Launch detached so the game runs independently of the launcher
+        qint64 pid;
+        bool success = QProcess::startDetached(game.executablePath, args, workingDir, &pid);
+        
+        qDebug() << "startDetached returned:" << success << "PID:" << pid;
+        
+        if (!success) {
+            QMessageBox::critical(this, "Launch Error", 
+                QString("Failed to start '%1'.\nExecutable: %2\nWorking dir: %3")
+                    .arg(game.name, game.executablePath, workingDir));
+        } else {
+            qDebug() << "Game" << game.name << "started with PID" << pid;
+        }
+    } catch (const std::exception& e) {
+        qCritical() << "Exception during launch:" << e.what();
         QMessageBox::critical(this, "Launch Error", 
-            QString("Failed to start game '%1'").arg(game.name));
-        process->deleteLater();
+            QString("Exception: %1").arg(e.what()));
+    } catch (...) {
+        qCritical() << "Unknown exception during launch";
+        QMessageBox::critical(this, "Launch Error", "Unknown exception occurred");
     }
 }
