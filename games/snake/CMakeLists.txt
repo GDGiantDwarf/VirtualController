@@ -35,8 +35,6 @@ add_custom_command(TARGET snake POST_BUILD
         $<TARGET_FILE:SFML::Graphics>
         $<TARGET_FILE:SFML::Window>
         $<TARGET_FILE:SFML::System>
-        $<TARGET_FILE:SFML::Audio>
-        $<TARGET_FILE:SFML::Network>
         "$<TARGET_FILE_DIR:snake>"
     COMMENT "Copying SFML DLLs to output directory"
 )

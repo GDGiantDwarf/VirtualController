@@ -17,6 +17,9 @@ add_subdirectory(launcher)
 # Game server (optional, can be built separately)
 add_subdirectory(server)
 
+# Snake game
+add_subdirectory(games/snake)
+
 # ============================================================================
 # Summary
 # ============================================================================
