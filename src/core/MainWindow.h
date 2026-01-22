@@ -5,6 +5,7 @@
 #include <QTabWidget>
 #include "GameLibraryTab.h"
 #include "ControllerTab.h"
+#include "WebSocketTab.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -20,6 +21,7 @@ private:
     QTabWidget* tabWidget;
     GameLibraryTab* libraryTab;
     ControllerTab* controllerTab;
+    WebSocketTab* webSocketTab;
 };
 
 #endif // MAINWINDOW_H

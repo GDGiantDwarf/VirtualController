@@ -10,7 +10,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # Find Qt packages
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui Network WebSockets svg)
 
 # Find ViGEmClient
 find_path(VIGEM_INCLUDE_DIR ViGEm/Client.h
@@ -62,12 +62,14 @@ set(UI_SOURCES
     src/ui/VirtualControllerWindow.cpp
     src/ui/ControllerTab.cpp
     src/ui/GameLibraryTab.cpp
+    src/ui/WebSocketTab.cpp
 )
 
 set(UI_HEADERS
     src/ui/VirtualControllerWindow.h
     src/ui/ControllerTab.h
     src/ui/GameLibraryTab.h
+    src/ui/WebSocketTab.h
 )
 
 # Input sources
@@ -103,6 +105,26 @@ set(SCANNER_HEADERS
     src/scanner/GameInfo.h
 )
 
+# Network (WebSocket)
+set(NETWORK_SOURCES
+    src/network/WebSocketInputSource.cpp
+)
+
+set(NETWORK_HEADERS
+    src/network/WebSocketInputSource.h
+)
+
+# QR Code Generator
+set(QRCODE_SOURCES
+    src/qrcode/QrCodeGenerator.cpp
+    src/qrcode/qrcodegen/qrcodegen.cpp
+)
+
+set(QRCODE_HEADERS
+    src/qrcode/QrCodeGenerator.h
+    src/qrcode/qrcodegen/qrcodegen.h
+)
+
 # Combine all sources
 set(ALL_SOURCES
     ${CORE_SOURCES}
@@ -110,6 +132,8 @@ set(ALL_SOURCES
     ${INPUT_SOURCES}
     ${MANAGER_SOURCES}
     ${SCANNER_SOURCES}
+    ${NETWORK_SOURCES}
+    ${QRCODE_SOURCES}
 )
 
 set(ALL_HEADERS
@@ -119,6 +143,8 @@ set(ALL_HEADERS
     ${MANAGER_HEADERS}
     ${INTERFACE_HEADERS}
     ${SCANNER_HEADERS}
+    ${NETWORK_HEADERS}
+    ${QRCODE_HEADERS}
 )
 
 # ============================================================================
@@ -135,6 +161,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/managers
     ${CMAKE_CURRENT_SOURCE_DIR}/src/interfaces
     ${CMAKE_CURRENT_SOURCE_DIR}/src/scanner
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/network
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/qrcode
 )
 
 # Add ViGEm include if found
@@ -148,6 +176,9 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui
+    Qt6::Network
+    Qt6::WebSockets
+    Qt6::Svg
 )
 
 # Link ViGEmClient if found
@@ -180,5 +211,7 @@ message(STATUS "  - UI:         ${UI_SOURCES}")
 message(STATUS "  - Input:      ${INPUT_SOURCES}")
 message(STATUS "  - Managers:   ${MANAGER_SOURCES}")
 message(STATUS "  - Scanner:    ${SCANNER_SOURCES}")
+message(STATUS "  - Network:    ${NETWORK_SOURCES}")
+message(STATUS "  - QR Code:    ${QRCODE_SOURCES}")
 message(STATUS "  - Interfaces: ${INTERFACE_HEADERS}")
 message(STATUS "==================================================")

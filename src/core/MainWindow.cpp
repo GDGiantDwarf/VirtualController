@@ -24,10 +24,12 @@ void MainWindow::setupUI() {
     
     // Create and add tabs
     controllerTab = new ControllerTab(this);
+    webSocketTab = new WebSocketTab(this);
     libraryTab = new GameLibraryTab(this);
     
-    tabWidget->addTab(controllerTab, "Connect a Controller");
-    tabWidget->addTab(libraryTab, "Game Library");
+    tabWidget->addTab(controllerTab, "🎮 Local Controllers");
+    tabWidget->addTab(webSocketTab, "📱 WebSocket Controllers");
+    tabWidget->addTab(libraryTab, "📚 Game Library");
     
     // Set as central widget
     setCentralWidget(tabWidget);
