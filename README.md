@@ -2,7 +2,7 @@
 
 Système de contrôleurs virtuels multi-joueurs utilisant ViGEmBus pour Windows.
 
-## 📁 Structure
+##  Structure
 
 ```
 VirtualController/
@@ -12,12 +12,14 @@ VirtualController/
 │   ├── input/        # LocalInputSource (temporaire - sera remplacé par l'app mobile)
 │   ├── managers/     # MultiControllerManager (gestion ViGEm)
 │   ├── interfaces/   # IInputSource (abstraction des sources d'input)
-│   └── scanner/      # Découverte de jeux dans ./games/
+│   ├── scanner/      # Découverte de jeux dans ./games/
+│   ├── networks/     # Gestions WS des virtual controllers 
+│   └── qrcode/       # lib de génération de QR codes pour la connection mobile (Copyright (c) 2023 Alex Spataru <https://github.com/alex-spataru>)
 ├── games/            # Dossiers de jeux (format: nom_jeu/nom_jeu.exe)
 └── docs/             # Documentation technique détaillée
 ```
 
-## 🔧 Prérequis
+##  Prérequis
 
 - Windows 10/11 (64-bit)
 - Visual Studio 2019+ avec C++
@@ -25,7 +27,7 @@ VirtualController/
 - CMake 3.16+
 - [ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases)
 
-## 🚀 Build
+##  Build
 
 ```bash
 mkdir build && cd build
@@ -35,11 +37,11 @@ cmake --build . --config Release
 
 Exécutable : `build/bin/Release/GameLibraryLauncher.exe`
 
-## 🎮 Utilisation
+##  Utilisation
 
 1. Lancer GameLibraryLauncher.exe
-2. Onglet "Local Controller Management" → Ajouter des contrôleurs (max 4)
-3. Tester avec les fenêtres de contrôle (provisoires)
+2. Ouvrir L'appli sur le téléphone
+3. Connecter le téléphone grace au QRcode
 4. Lancer un jeu depuis l'onglet "Game Library"
 
 ### Format des Jeux
@@ -49,23 +51,27 @@ Les jeux doivent être dans `./games/` avec cette structure :
 games/
 └── nom_jeu/
     └── nom_jeu.exe    # Exécutable (nom doit correspondre au dossier)
+    └── nom_jeu.ico    # Icone (optionnelle)
 ```
 
 L'icône `.ico` est optionnelle. Le scanner cherche uniquement les `.exe` correspondants.
+Les `.ico` trouvés sont utilisés pour l'icone du jeu associé
 
-## 🏗️ Architecture
+##  Architecture
 
 ### Modules Clés
 
 **`MultiControllerManager`** : Gère jusqu'à 4 contrôleurs ViGEm avec retry logic (3 tentatives)
 
 **`IInputSource`** : Interface abstraite pour les sources d'input
-- Actuel : `LocalInputSource` (UI de test, temporaire)
-- Future : Source réseau depuis application mobile
+-  `LocalInputSource` (UI de test, temporaire)
+-  `WebSocketInputSource` Source réseau depuis application mobile
 
 **`GameScanner`** : Découverte automatique des jeux
 - Scan de `./games/` pour trouver les exécutables
 - Préparé pour téléchargement distant futur
+
+**`UI`**: Fenetres QT pour l'interface utilisateur
 
 ### Workflow
 
@@ -88,43 +94,16 @@ set(MON_MODULE_HEADERS src/mon_module/MaClasse.h)
 # Ajouter à ALL_SOURCES et include_directories
 ```
 
-### Conventions
 
-- Headers/Sources : PascalCase (`MaClasse.h`, `MaClasse.cpp`)
-- Dossiers : snake_case (`mon_module/`)
-- Includes : Pas de chemins relatifs grâce aux include directories CMake
-
-```cpp
-// ✅ Bon
-#include "IInputSource.h"
-#include "MultiControllerManager.h"
-
-// ❌ Éviter
-#include "../interfaces/IInputSource.h"
-```
-
-## 🎯 Roadmap
+##  Roadmap
 
 - [x] Support 4 contrôleurs simultanés
-- [x] Architecture modulaire
 - [x] Stick analogique + D-Pad 8 directions
-- [ ] Application mobile (remplacement LocalInputSource)
+- [x] Application mobile (remplacement LocalInputSource)
 - [ ] Système de téléchargement de jeux distant
 - [ ] Tests unitaires
 
-## 📚 Documentation Détaillée
-
-- `docs/ARCHITECTURE_MODULAIRE.md` : Architecture complète
-- `docs/modifications_documentation.md` : Changements techniques
-- `docs/guide_cicd_basique.md` : CI/CD et automatisation
-
 ## ⚠️ Notes
 
-- **LocalInputSource** : Interface de test temporaire, sera remplacée par l'app mobile
+- **LocalInputSource** : Interface de test et de démo, a vocation à etre remplacé par l'app mobile
 - **Windows uniquement** : ViGEmBus est Windows-only, pas de portabilité prévue
-- **Build folder** : Exclu du repo (.gitignore), ne pas commiter
-
----
-
-**Version** : 2.0.0  
-**License** : Voir projet original VirtualController
