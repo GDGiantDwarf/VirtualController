@@ -71,7 +71,7 @@ private:
     
     bool m_managerInitialized;
     static constexpr int MAX_SERVERS = 4;
-    quint16 m_basePort = 8765;
+    quint16 m_basePort = 8770; // Ports 8770-8773
 };
 
 #endif // WEBSOCKETTAB_H

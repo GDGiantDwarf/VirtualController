@@ -51,7 +51,7 @@ void WebSocketTab::setupUI() {
     
     // Instructions
     QLabel* instructionsLabel = new QLabel(
-        "4 WebSocket servers are always listening on ports 8765-8768.\n"
+        "4 WebSocket servers are always listening on ports selected (" + QString::number(m_basePort) + "-" + QString::number(m_basePort + MAX_SERVERS - 1) + ").\n"
         "Scan the QR code below to connect with your mobile app.\n"
         "A virtual controller will be created when a device connects.",
         this
