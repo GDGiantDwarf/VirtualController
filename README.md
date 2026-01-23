@@ -1,4 +1,4 @@
-# VirtualController v2.0
+# VirtualController
 
 Système de contrôleurs virtuels multi-joueurs utilisant ViGEmBus pour Windows.
 
