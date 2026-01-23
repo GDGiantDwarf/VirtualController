@@ -73,14 +73,7 @@ Les `.ico` trouvés sont utilisés pour l'icone du jeu associé
 
 **`UI`**: Fenetres QT pour l'interface utilisateur
 
-### Workflow
-
-```
-LocalInputSource → MultiControllerManager → ViGEm → Jeux
-(fenêtre test)     (gère 4 contrôleurs)     (driver)
-```
-
-## 📝 Développement
+## Développement
 
 ### Ajouter un Module
 
