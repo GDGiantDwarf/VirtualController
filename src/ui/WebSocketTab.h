@@ -5,8 +5,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QVBoxLayout>
-#include <QScrollArea>
-#include <vector>
+#include <array>
 #include <memory>
 #include "IInputSource.h"
 #include "WebSocketInputSource.h"
@@ -14,25 +13,24 @@
 #include "QrCodeGenerator.h"
 
 /**
- * @brief Structure pour gérer un contrôleur WebSocket
+ * @brief Slot de contrôleur associant port, WebSocket et ViGEm
  */
-struct WebSocketControllerInfo {
-    int controllerId;
-    std::unique_ptr<WebSocketInputSource> inputSource;
-    QLabel* statusLabel;
-    QPushButton* removeButton;
-    QLabel* qrCodeLabel;
+struct ControllerSlot {
+    quint16 port;                                      // Port number (8765-8768)
+    std::unique_ptr<WebSocketInputSource> inputSource; // WebSocket server
+    int vigEmControllerId;                             // ViGEm controller ID (-1 if not created)
+    bool isConnected;                                  // Has active client connection
     
-    WebSocketControllerInfo(int id) : controllerId(id), statusLabel(nullptr), 
-                                       removeButton(nullptr), qrCodeLabel(nullptr) {}
+    ControllerSlot() : port(0), vigEmControllerId(-1), isConnected(false) {}
 };
 
 /**
  * @brief Onglet de gestion des contrôleurs WebSocket (smartphone)
  * 
  * Cette classe permet de :
- * - Créer jusqu'à 4 serveurs WebSocket (un par contrôleur)
- * - Afficher des QR codes pour le pairing automatique
+ * - Créer 4 serveurs WebSocket toujours actifs (ports 8765-8768)
+ * - Afficher un QR code unique pour le prochain port disponible
+ * - Créer un contrôleur ViGEm seulement quand un client se connecte
  * - Recevoir les inputs des smartphones et les transmettre à ViGEm
  */
 class WebSocketTab : public QWidget {
@@ -43,8 +41,6 @@ public:
     ~WebSocketTab();
     
 private slots:
-    void onAddControllerClicked();
-    void onRemoveControllerClicked(int controllerId);
     void onInputStateChanged(const ControllerState& state);
     void onInputConnectionChanged(bool connected);
     void onInputError(const QString& error);
@@ -55,25 +51,27 @@ private slots:
     
 private:
     void setupUI();
+    void initializeAllServers();
     void initializeManagerIfNeeded();
-    void updateControllerStatus();
-    QWidget* createControllerWidget(int controllerId, WebSocketInputSource* source);
+    void updateQrCode();
+    void createVigEmControllerForSlot(int slotIndex);
+    void removeVigEmControllerForSlot(int slotIndex);
     QImage generateQrCode(const QString& url);
+    int getLowestAvailableSlotIndex() const;
+    int getSlotIndexForInputSource(WebSocketInputSource* source) const;
     
     std::unique_ptr<MultiControllerManager> m_manager;
-    std::vector<WebSocketControllerInfo> m_controllers;
+    std::array<ControllerSlot, 4> m_controllerSlots;
     QrCodeGenerator m_qrGenerator;
     
-    QLabel* statusLabel;
+    QLabel* qrCodeLabel;
+    QLabel* urlLabel;
     QLabel* managerStatusLabel;
-    QPushButton* addControllerButton;
-    QVBoxLayout* controllersLayout;
-    QScrollArea* scrollArea;
-    QWidget* scrollContent;
+    QLabel* statusLabel;
     
     bool m_managerInitialized;
-    int m_activeControllerCount;
-    quint16 m_basePort; // Port de départ : 8765
+    static constexpr int MAX_SERVERS = 4;
+    quint16 m_basePort = 8765;
 };
 
 #endif // WEBSOCKETTAB_H

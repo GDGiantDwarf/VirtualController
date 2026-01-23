@@ -4,19 +4,23 @@
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QPixmap>
+#include <algorithm>
 
 WebSocketTab::WebSocketTab(QWidget* parent)
     : QWidget(parent)
     , m_managerInitialized(false)
-    , m_activeControllerCount(0)
-    , m_basePort(8765)
 {
     setupUI();
+    initializeAllServers();
 }
 
 WebSocketTab::~WebSocketTab() {
-    // Clean up all controllers
-    m_controllers.clear();
+    // Clean up all input sources
+    for (auto& slot : m_controllerSlots) {
+        if (slot.inputSource && slot.inputSource->isActive()) {
+            slot.inputSource->stop();
+        }
+    }
     
     // Clean up manager
     if (m_manager) {
@@ -47,9 +51,9 @@ void WebSocketTab::setupUI() {
     
     // Instructions
     QLabel* instructionsLabel = new QLabel(
-        "Add up to 4 WebSocket controllers for smartphone connection.\n"
-        "Each controller will show a QR code that you can scan with your mobile app.\n"
-        "ViGEm will be initialized when you add the first controller.",
+        "4 WebSocket servers are always listening on ports 8765-8768.\n"
+        "Scan the QR code below to connect with your mobile app.\n"
+        "A virtual controller will be created when a device connects.",
         this
     );
     instructionsLabel->setAlignment(Qt::AlignCenter);
@@ -57,62 +61,177 @@ void WebSocketTab::setupUI() {
     instructionsLabel->setStyleSheet("color: #555; font-size: 14px; padding: 10px;");
     mainLayout->addWidget(instructionsLabel);
     
-    // Add controller button
-    addControllerButton = new QPushButton("📱 Add WebSocket Controller", this);
-    addControllerButton->setMinimumHeight(50);
-    addControllerButton->setStyleSheet(
-        "QPushButton {"
-        "   background-color: #2196F3; "
-        "   color: white; "
-        "   font-size: 16px; "
+    // QR Code Section
+    QGroupBox* qrGroupBox = new QGroupBox("Connect Mobile Controller", this);
+    qrGroupBox->setStyleSheet(
+        "QGroupBox {"
         "   font-weight: bold; "
-        "   border-radius: 5px; "
-        "   padding: 10px;"
+        "   border: 2px solid #2196F3; "
+        "   border-radius: 8px; "
+        "   margin-top: 10px; "
+        "   padding-top: 10px;"
         "}"
-        "QPushButton:hover {"
-        "   background-color: #1976D2;"
-        "}"
-        "QPushButton:pressed {"
-        "   background-color: #0D47A1;"
-        "}"
-        "QPushButton:disabled {"
-        "   background-color: #cccccc;"
-        "   color: #666666;"
+        "QGroupBox::title {"
+        "   subcontrol-origin: margin; "
+        "   left: 10px; "
+        "   padding: 0 5px;"
         "}"
     );
-    connect(addControllerButton, &QPushButton::clicked, 
-            this, &WebSocketTab::onAddControllerClicked);
-    mainLayout->addWidget(addControllerButton);
+    QVBoxLayout* qrLayout = new QVBoxLayout(qrGroupBox);
     
-    // Scroll area for controllers
-    scrollArea = new QScrollArea(this);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    // Connection URL
+    urlLabel = new QLabel("Connection URL: Not available", this);
+    urlLabel->setAlignment(Qt::AlignCenter);
+    urlLabel->setWordWrap(true);
+    urlLabel->setStyleSheet("padding: 5px; background-color: #f0f0f0; border-radius: 3px; font-weight: bold;");
+    qrLayout->addWidget(urlLabel);
     
-    scrollContent = new QWidget();
-    controllersLayout = new QVBoxLayout(scrollContent);
-    controllersLayout->setSpacing(15);
-    scrollArea->setWidget(scrollContent);
+    // QR Code
+    qrCodeLabel = new QLabel(this);
+    qrCodeLabel->setAlignment(Qt::AlignCenter);
+    qrCodeLabel->setMinimumSize(300, 300);
+    qrLayout->addWidget(qrCodeLabel);
     
-    mainLayout->addWidget(scrollArea);
+    QLabel* qrInstructionLabel = new QLabel("Scan this QR code with your mobile app to connect", this);
+    qrInstructionLabel->setAlignment(Qt::AlignCenter);
+    qrInstructionLabel->setStyleSheet("color: #666; font-style: italic; font-size: 12px;");
+    qrLayout->addWidget(qrInstructionLabel);
+    
+    mainLayout->addWidget(qrGroupBox);
     
     // Status label
-    statusLabel = new QLabel("No WebSocket controllers connected", this);
+    statusLabel = new QLabel("Initializing WebSocket servers...", this);
     statusLabel->setAlignment(Qt::AlignCenter);
     statusLabel->setStyleSheet("color: #888; font-style: italic;");
     mainLayout->addWidget(statusLabel);
     
+    mainLayout->addStretch();
     setLayout(mainLayout);
 }
 
-void WebSocketTab::onAddControllerClicked() {
-    // Check if we've reached the maximum
-    if (m_activeControllerCount >= MultiControllerManager::MAX_CONTROLLERS) {
-        QMessageBox::warning(this, "Maximum Reached",
-            QString("Maximum of %1 controllers already added!")
-                   .arg(MultiControllerManager::MAX_CONTROLLERS));
-        return;
+void WebSocketTab::initializeAllServers() {
+    qDebug() << "Initializing all 4 WebSocket servers...";
+    
+    // Create 4 input sources on ports 8765-8768
+    for (int i = 0; i < MAX_SERVERS; ++i) {
+        ControllerSlot& slot = m_controllerSlots[i];
+        slot.port = m_basePort + i;
+        slot.vigEmControllerId = -1;  // Not created yet
+        slot.isConnected = false;
+        
+        auto inputSource = std::make_unique<WebSocketInputSource>(i + 1, this);
+        inputSource->setPort(slot.port);
+        
+        // Connect signals BEFORE starting
+        connect(inputSource.get(), &IInputSource::stateChanged,
+                this, &WebSocketTab::onInputStateChanged);
+        connect(inputSource.get(), &IInputSource::connectionStatusChanged,
+                this, &WebSocketTab::onInputConnectionChanged);
+        connect(inputSource.get(), &IInputSource::errorOccurred,
+                this, &WebSocketTab::onInputError);
+        
+        // Start WebSocket server
+        if (!inputSource->start()) {
+            qWarning() << "Failed to start WebSocket server on port" << slot.port;
+            statusLabel->setText(QString("❌ Failed to start server on port %1").arg(slot.port));
+            continue;
+        }
+        
+        qInfo() << "Server" << i + 1 << "started on port" << slot.port;
+        slot.inputSource = std::move(inputSource);
     }
+    
+    // Update QR code for the first (available) server
+    updateQrCode();
+}
+
+void WebSocketTab::updateQrCode() {
+    int lowestIndex = getLowestAvailableSlotIndex();
+    
+    if (lowestIndex >= 0 && lowestIndex < MAX_SERVERS) {
+        const ControllerSlot& slot = m_controllerSlots[lowestIndex];
+        QString connectionUrl = slot.inputSource->getConnectionUrl();
+        
+        // Update URL label
+        urlLabel->setText(QString("Connection URL: <b>%1</b>").arg(connectionUrl));
+        
+        // Generate and display QR code
+        QImage qrImage = generateQrCode(connectionUrl);
+        qrCodeLabel->setPixmap(QPixmap::fromImage(qrImage));
+        
+        // Count connected slots
+        int connectedCount = 0;
+        for (const auto& s : m_controllerSlots) {
+            if (s.isConnected) connectedCount++;
+        }
+        
+        // Update status
+        statusLabel->setText(QString("%1/4 connected | Next available: Port %2")
+                                    .arg(connectedCount)
+                                    .arg(slot.port));
+    } else {
+        statusLabel->setText("❌ All 4 controllers connected");
+    }
+}
+
+int WebSocketTab::getLowestAvailableSlotIndex() const {
+    for (int i = 0; i < MAX_SERVERS; ++i) {
+        if (m_controllerSlots[i].inputSource && !m_controllerSlots[i].isConnected) {
+            return i;
+        }
+    }
+    return -1; // All slots have clients
+}
+
+int WebSocketTab::getSlotIndexForInputSource(WebSocketInputSource* source) const {
+    for (int i = 0; i < MAX_SERVERS; ++i) {
+        if (m_controllerSlots[i].inputSource.get() == source) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void WebSocketTab::onInputConnectionChanged(bool connected) {
+    WebSocketInputSource* source = qobject_cast<WebSocketInputSource*>(sender());
+    if (!source) return;
+    
+    // Find which slot this is
+    int slotIndex = getSlotIndexForInputSource(source);
+    if (slotIndex < 0) return;
+    
+    ControllerSlot& slot = m_controllerSlots[slotIndex];
+    
+    if (connected) {
+        qDebug() << "Client connected to port" << slot.port;
+        
+        slot.isConnected = true;
+        
+        // Create ViGEm controller only when client connects
+        createVigEmControllerForSlot(slotIndex);
+        
+        // Update QR code to show next available port
+        updateQrCode();
+    } else {
+        qDebug() << "Client disconnected from port" << slot.port;
+        
+        slot.isConnected = false;
+        
+        // Remove ViGEm controller when client disconnects
+        removeVigEmControllerForSlot(slotIndex);
+        
+        // Update QR code
+        updateQrCode();
+    }
+}
+
+void WebSocketTab::createVigEmControllerForSlot(int slotIndex) {
+    if (slotIndex < 0 || slotIndex >= MAX_SERVERS) return;
+    
+    ControllerSlot& slot = m_controllerSlots[slotIndex];
+    
+    // Skip if already has a ViGEm controller
+    if (slot.vigEmControllerId >= 0) return;
     
     // Initialize manager if needed
     if (!m_managerInitialized) {
@@ -122,146 +241,41 @@ void WebSocketTab::onAddControllerClicked() {
         }
     }
     
-    // Determine next controller ID
-    int controllerId = m_activeControllerCount + 1;
+    int controllerId = slotIndex + 1;
     
-    qDebug() << "Adding WebSocket controller" << controllerId;
+    qDebug() << "Creating ViGEm controller" << controllerId << "for port" << slot.port;
     
     // Add controller to manager
     if (!m_manager->addController(controllerId)) {
-        QMessageBox::critical(this, "Error",
-            QString("Failed to add controller %1 to ViGEm").arg(controllerId));
+        qWarning() << "Failed to add controller" << controllerId << "to ViGEm";
         return;
     }
     
-    // Create WebSocket input source with unique port
-    quint16 port = m_basePort + m_activeControllerCount;
-    auto inputSource = std::make_unique<WebSocketInputSource>(controllerId, this);
-    
-    // Connect signals BEFORE starting
-    connect(inputSource.get(), &IInputSource::stateChanged,
-            this, &WebSocketTab::onInputStateChanged);
-    connect(inputSource.get(), &IInputSource::connectionStatusChanged,
-            this, &WebSocketTab::onInputConnectionChanged);
-    connect(inputSource.get(), &IInputSource::errorOccurred,
-            this, &WebSocketTab::onInputError);
-    
-    // Start WebSocket server
-    if (!inputSource->start()) {
-        m_manager->removeController(controllerId);
-        QMessageBox::critical(this, "Error",
-            QString("Failed to start WebSocket server for controller %1").arg(controllerId));
-        return;
-    }
-    
-    // Create controller widget with QR code
-    QWidget* controllerWidget = createControllerWidget(controllerId, inputSource.get());
-    controllersLayout->addWidget(controllerWidget);
-    
-    // Store controller info
-    WebSocketControllerInfo info(controllerId);
-    info.inputSource = std::move(inputSource);
-    
-    // Find the labels and button we just created
-    QList<QLabel*> labels = controllerWidget->findChildren<QLabel*>();
-    for (QLabel* label : labels) {
-        if (label->objectName() == "statusLabel") {
-            info.statusLabel = label;
-        } else if (label->objectName() == "qrCodeLabel") {
-            info.qrCodeLabel = label;
-        }
-    }
-    info.removeButton = controllerWidget->findChild<QPushButton*>("removeButton");
-    
-    m_controllers.push_back(std::move(info));
-    
-    m_activeControllerCount++;
-    updateControllerStatus();
-    
-    // Disable add button if max reached
-    if (m_activeControllerCount >= MultiControllerManager::MAX_CONTROLLERS) {
-        addControllerButton->setEnabled(false);
-        addControllerButton->setText("Maximum Controllers Reached");
-    }
+    slot.vigEmControllerId = controllerId;
 }
 
-void WebSocketTab::onRemoveControllerClicked(int controllerId) {
-    qDebug() << "Removing WebSocket controller" << controllerId;
+void WebSocketTab::removeVigEmControllerForSlot(int slotIndex) {
+    if (slotIndex < 0 || slotIndex >= MAX_SERVERS) return;
     
-    // Remove from manager
+    ControllerSlot& slot = m_controllerSlots[slotIndex];
+    
+    // Skip if no ViGEm controller
+    if (slot.vigEmControllerId < 0) return;
+    
+    int controllerId = slot.vigEmControllerId;
+    
+    qDebug() << "Removing ViGEm controller" << controllerId;
+    
     if (m_manager) {
         m_manager->removeController(controllerId);
     }
     
-    // Find and remove controller
-    auto it = std::find_if(m_controllers.begin(), m_controllers.end(),
-        [controllerId](const WebSocketControllerInfo& info) {
-            return info.controllerId == controllerId;
-        });
-    
-    if (it != m_controllers.end()) {
-        // Stop the WebSocket server
-        if (it->inputSource) {
-            it->inputSource->stop();
-        }
-        
-        // Remove widget
-        if (it->removeButton) {
-            QWidget* parentWidget = it->removeButton->parentWidget();
-            if (parentWidget) {
-                parentWidget->deleteLater();
-            }
-        }
-        
-        // Remove from vector
-        m_controllers.erase(it);
-    }
-    
-    m_activeControllerCount--;
-    updateControllerStatus();
-    
-    // Re-enable add button
-    addControllerButton->setEnabled(true);
-    addControllerButton->setText("📱 Add WebSocket Controller");
+    slot.vigEmControllerId = -1;
 }
 
 void WebSocketTab::onInputStateChanged(const ControllerState& state) {
     if (m_manager && m_manager->isClientConnected()) {
         m_manager->updateController(state.controllerId, state);
-    }
-}
-
-void WebSocketTab::onInputConnectionChanged(bool connected) {
-    // Update status label for this specific controller
-    WebSocketInputSource* source = qobject_cast<WebSocketInputSource*>(sender());
-    if (!source) return;
-    
-    auto it = std::find_if(m_controllers.begin(), m_controllers.end(),
-        [source](const WebSocketControllerInfo& info) {
-            return info.inputSource.get() == source;
-        });
-    
-    if (it != m_controllers.end() && it->statusLabel) {
-        if (connected) {
-            it->statusLabel->setText(QString("Status: ✓ Mobile Connected (%1 clients)")
-                                    .arg(source->getConnectedClients()));
-            it->statusLabel->setStyleSheet(
-                "padding: 8px; "
-                "background-color: #ccffcc; "
-                "border-radius: 5px; "
-                "font-weight: bold; "
-                "color: #006600;"
-            );
-        } else {
-            it->statusLabel->setText("Status: ⏳ Waiting for connection...");
-            it->statusLabel->setStyleSheet(
-                "padding: 8px; "
-                "background-color: #fff3cd; "
-                "border-radius: 5px; "
-                "font-weight: bold; "
-                "color: #856404;"
-            );
-        }
     }
 }
 
@@ -344,101 +358,7 @@ void WebSocketTab::initializeManagerIfNeeded() {
     qDebug() << "MultiControllerManager initialized successfully!";
 }
 
-void WebSocketTab::updateControllerStatus() {
-    if (m_activeControllerCount == 0) {
-        statusLabel->setText("No WebSocket controllers connected");
-        statusLabel->setStyleSheet("color: #888; font-style: italic;");
-    } else {
-        statusLabel->setText(QString("%1 WebSocket controller(s) active")
-                                    .arg(m_activeControllerCount));
-        statusLabel->setStyleSheet("color: green; font-weight: bold;");
-    }
-}
-
-QWidget* WebSocketTab::createControllerWidget(int controllerId, WebSocketInputSource* source) {
-    QWidget* widget = new QWidget(this);
-    QVBoxLayout* layout = new QVBoxLayout(widget);
-    
-    // Group box for this controller
-    QGroupBox* groupBox = new QGroupBox(QString("Controller %1").arg(controllerId));
-    groupBox->setStyleSheet(
-        "QGroupBox {"
-        "   font-weight: bold; "
-        "   border: 2px solid #2196F3; "
-        "   border-radius: 8px; "
-        "   margin-top: 10px; "
-        "   padding-top: 10px;"
-        "}"
-        "QGroupBox::title {"
-        "   subcontrol-origin: margin; "
-        "   left: 10px; "
-        "   padding: 0 5px;"
-        "}"
-    );
-    
-    QVBoxLayout* groupLayout = new QVBoxLayout(groupBox);
-    
-    // Connection info
-    QString connectionUrl = source->getConnectionUrl();
-    QLabel* urlLabel = new QLabel(QString("Connection URL: <b>%1</b>").arg(connectionUrl), this);
-    urlLabel->setWordWrap(true);
-    urlLabel->setStyleSheet("padding: 5px; background-color: #f0f0f0; border-radius: 3px;");
-    groupLayout->addWidget(urlLabel);
-    
-    // QR Code
-    QLabel* qrLabel = new QLabel(this);
-    qrLabel->setObjectName("qrCodeLabel");
-    qrLabel->setAlignment(Qt::AlignCenter);
-    QImage qrImage = generateQrCode(connectionUrl);
-    qrLabel->setPixmap(QPixmap::fromImage(qrImage));
-    groupLayout->addWidget(qrLabel);
-    
-    QLabel* qrInstructionLabel = new QLabel("Scan this QR code with your mobile app to connect", this);
-    qrInstructionLabel->setAlignment(Qt::AlignCenter);
-    qrInstructionLabel->setStyleSheet("color: #666; font-style: italic; font-size: 12px;");
-    groupLayout->addWidget(qrInstructionLabel);
-    
-    // Status label
-    QLabel* statusLbl = new QLabel("Status: ⏳ Waiting for connection...", this);
-    statusLbl->setObjectName("statusLabel");
-    statusLbl->setAlignment(Qt::AlignCenter);
-    statusLbl->setStyleSheet(
-        "padding: 8px; "
-        "background-color: #fff3cd; "
-        "border-radius: 5px; "
-        "font-weight: bold; "
-        "color: #856404;"
-    );
-    groupLayout->addWidget(statusLbl);
-    
-    // Remove button
-    QPushButton* removeBtn = new QPushButton(QString("❌ Remove Controller %1").arg(controllerId), this);
-    removeBtn->setObjectName("removeButton");
-    removeBtn->setStyleSheet(
-        "QPushButton {"
-        "   background-color: #f44336; "
-        "   color: white; "
-        "   padding: 10px; "
-        "   border-radius: 5px; "
-        "   font-weight: bold;"
-        "}"
-        "QPushButton:hover {"
-        "   background-color: #da190b;"
-        "}"
-    );
-    connect(removeBtn, &QPushButton::clicked, this, [this, controllerId]() {
-        onRemoveControllerClicked(controllerId);
-    });
-    groupLayout->addWidget(removeBtn);
-    
-    layout->addWidget(groupBox);
-    widget->setLayout(layout);
-    
-    return widget;
-}
-
 QImage WebSocketTab::generateQrCode(const QString& url) {
-    // Generate QR code with appropriate size
     QImage qrImage = m_qrGenerator.generateQr(url, 300, 1);
     return qrImage;
 }

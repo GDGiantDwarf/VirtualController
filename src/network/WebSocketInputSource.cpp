@@ -154,6 +154,11 @@ void WebSocketInputSource::onNewConnection() {
             this, &WebSocketInputSource::onTextMessageReceived);
     connect(client, &QWebSocket::disconnected,
             this, &WebSocketInputSource::onClientDisconnected);
+
+    // Emit signal to notify UI that a client has connected
+    emit connectionStatusChanged(true);
+    
+    std::cout << "New client connected." << std::endl;
 }
 
 void WebSocketInputSource::onTextMessageReceived(const QString& message) {
@@ -195,6 +200,9 @@ void WebSocketInputSource::onClientDisconnected() {
         if (m_clients.isEmpty()) {
             m_currentState.reset();
             emit stateChanged(m_currentState);
+            
+            // Emit signal to notify UI that all clients have disconnected
+            emit connectionStatusChanged(false);
         }
     }
 }

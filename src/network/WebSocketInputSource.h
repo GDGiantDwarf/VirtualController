@@ -38,6 +38,11 @@ public:
     QString getLocalIp() const;
     
     /**
+     * @brief Définit le port du serveur (avant start())
+     */
+    void setPort(quint16 port) { m_port = port; }
+    
+    /**
      * @brief Retourne le port du serveur
      */
     quint16 getPort() const { return m_port; }
