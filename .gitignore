@@ -1,7 +1,9 @@
 # Build directories
 build/
 bin/
-lib/
+# Keep Flutter sources; ignore only root-level lib outputs
+/lib/
+!mobile_controller/lib/
 *.user
 
 # CMake
