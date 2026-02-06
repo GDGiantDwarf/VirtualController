@@ -18,6 +18,7 @@ find_path(VIGEM_INCLUDE_DIR ViGEm/Client.h
         "C:/ViGEmClient/include"
         "C:/Program Files/ViGEmClient/include"
         "C:/vcpkg/installed/x64-windows/include"
+        "${VIGEM_SDK}/include"
         "$ENV{VIGEM_SDK}/include"
     NO_DEFAULT_PATH
 )
@@ -30,6 +31,7 @@ find_library(VIGEM_LIBRARY
         "C:/ViGEmClient/lib/x64"
         "C:/Program Files/ViGEmClient/lib"
         "C:/vcpkg/installed/x64-windows/lib"
+        "${VIGEM_SDK}/lib/x64"
         "$ENV{VIGEM_SDK}/lib/x64"
     NO_DEFAULT_PATH
 )
