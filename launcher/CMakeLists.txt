@@ -14,7 +14,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui Network WebSockets Svg)
 
 # ============================================================================
 # ViGEmClient Configuration
@@ -53,9 +53,13 @@ set(LAUNCHER_SOURCES
     src/ui/VirtualControllerWindow.cpp
     src/ui/ControllerTab.cpp
     src/ui/GameLibraryTab.cpp
+    src/ui/WebSocketTab.cpp
     src/input/LocalInputSource.cpp
     src/managers/MultiControllerManager.cpp
     src/scanner/GameScanner.cpp
+    ../src/network/WebSocketInputSource.cpp
+    ../src/qrcode/QrCodeGenerator.cpp
+    ../src/qrcode/qrcodegen/qrcodegen.cpp
 )
 
 set(LAUNCHER_HEADERS
@@ -63,11 +67,15 @@ set(LAUNCHER_HEADERS
     src/ui/VirtualControllerWindow.h
     src/ui/ControllerTab.h
     src/ui/GameLibraryTab.h
+    src/ui/WebSocketTab.h
     src/input/LocalInputSource.h
     src/managers/MultiControllerManager.h
     src/interfaces/IInputSource.h
     src/scanner/GameScanner.h
     src/scanner/GameInfo.h
+    ../src/network/WebSocketInputSource.h
+    ../src/qrcode/QrCodeGenerator.h
+    ../src/qrcode/qrcodegen/qrcodegen.h
 )
 
 # ============================================================================
@@ -89,6 +97,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/managers
     ${CMAKE_CURRENT_SOURCE_DIR}/src/interfaces
     ${CMAKE_CURRENT_SOURCE_DIR}/src/scanner
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/network
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/qrcode
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/qrcode/qrcodegen
 )
 
 if(VIGEM_INCLUDE_DIR)
@@ -115,6 +126,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui
+    Qt6::Network
+    Qt6::WebSockets
+    Qt6::Svg
 )
 
 if(VIGEM_LIBRARY)
