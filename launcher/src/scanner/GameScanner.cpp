@@ -38,25 +38,37 @@ QVector<GameInfo> GameScanner::scanGames(const QString& gamesDirectory) {
 
 bool GameScanner::isValidGameFolder(const QString& folderPath, const QString& folderName) {
     QDir folder(folderPath);
-    
-    // Check for .exe file with same name as folder
-    QString exeName = folderName + ".exe";
-    QString exePath = folder.filePath(exeName);
-    
-    QFileInfo exeInfo(exePath);
-    
-    if (!exeInfo.exists() || !exeInfo.isFile()) {
-        qDebug() << "Game folder" << folderName << "missing executable:" << exeName;
-        return false;
+
+    // Prefer build/bin/Release/<name>.exe if present, fall back to <name>.exe
+    const QString releaseExePath = folder.filePath("build/bin/Release/" + folderName + ".exe");
+    const QString flatExePath = folder.filePath(folderName + ".exe");
+
+    QFileInfo releaseExe(releaseExePath);
+    QFileInfo flatExe(flatExePath);
+
+    if (releaseExe.exists() && releaseExe.isFile()) {
+        return true;
     }
-    
-    return true;
+
+    if (flatExe.exists() && flatExe.isFile()) {
+        return true;
+    }
+
+    qDebug() << "Game folder" << folderName << "missing executable in either" << releaseExePath
+             << "or" << flatExePath;
+    return false;
 }
 
 GameInfo GameScanner::createGameInfo(const QString& folderPath, const QString& folderName) {
     QDir folder(folderPath);
-    
-    QString exePath = folder.filePath(folderName + ".exe");
+
+    // Pick build/bin/Release executable if available; otherwise use flat exe
+    QString exePath = folder.filePath("build/bin/Release/" + folderName + ".exe");
+    QFileInfo exeInfo(exePath);
+    if (!exeInfo.exists() || !exeInfo.isFile()) {
+        exePath = folder.filePath(folderName + ".exe");
+    }
+
     QString icoPath = folder.filePath(folderName + ".ico");
     
     // Icon is optional, exe is mandatory

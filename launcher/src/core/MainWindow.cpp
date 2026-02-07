@@ -3,11 +3,17 @@
 #include <QMenu>
 #include <QAction>
 #include <QApplication>
+#include <QCloseEvent>
+#include <QMetaObject>
 #include <QMessageBox>
+#include <cstdlib>
 
-MainWindow::MainWindow(QWidget* parent)
+MainWindow::MainWindow(const QString& serverHostIn, int serverPortIn, QWidget* parent)
     : QMainWindow(parent)
+    , serverHost(serverHostIn)
+    , serverPort(serverPortIn)
 {
+    setAttribute(Qt::WA_QuitOnClose, true);
     setupUI();
     createMenuBar();
     
@@ -18,14 +24,19 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::~MainWindow() {
 }
 
+void MainWindow::closeEvent(QCloseEvent* event) {
+    // Accept the close event and let Qt's aboutToQuit signal handler exit
+    if (event) event->accept();
+}
+
 void MainWindow::setupUI() {
     // Create tab widget
     tabWidget = new QTabWidget(this);
     
     // Create and add tabs
     controllerTab = new ControllerTab(this);
+    libraryTab = new GameLibraryTab(this, serverHost, serverPort);
     webSocketTab = new WebSocketTab(this);
-    libraryTab = new GameLibraryTab(this);
     
     tabWidget->addTab(controllerTab, "🎮 Local Controllers");
     tabWidget->addTab(webSocketTab, "📱 WebSocket Controllers");

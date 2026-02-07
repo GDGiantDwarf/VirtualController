@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
-project(GameLibraryLauncher VERSION 2.0 LANGUAGES CXX)
+project(VirtualController VERSION 2.0 LANGUAGES CXX)
+
+# Disable ZERO_CHECK target to prevent auto-rebuilds
+set(CMAKE_SUPPRESS_REGENERATION ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -46,174 +49,26 @@ else()
 endif()
 
 # ============================================================================
-# Source files organized by module
+# Build components
 # ============================================================================
 
-# Core application files
-set(CORE_SOURCES
-    src/core/main.cpp
-    src/core/MainWindow.cpp
-)
+# Desktop launcher application
+add_subdirectory(launcher)
 
-set(CORE_HEADERS
-    src/core/MainWindow.h
-)
+# Game server (optional, can be built separately)
+add_subdirectory(server)
 
-# UI components
-set(UI_SOURCES
-    src/ui/VirtualControllerWindow.cpp
-    src/ui/ControllerTab.cpp
-    src/ui/GameLibraryTab.cpp
-    src/ui/WebSocketTab.cpp
-)
-
-set(UI_HEADERS
-    src/ui/VirtualControllerWindow.h
-    src/ui/ControllerTab.h
-    src/ui/GameLibraryTab.h
-    src/ui/WebSocketTab.h
-)
-
-# Input sources
-set(INPUT_SOURCES
-    src/input/LocalInputSource.cpp
-)
-
-set(INPUT_HEADERS
-    src/input/LocalInputSource.h
-)
-
-# Managers
-set(MANAGER_SOURCES
-    src/managers/MultiControllerManager.cpp
-)
-
-set(MANAGER_HEADERS
-    src/managers/MultiControllerManager.h
-)
-
-# Interfaces
-set(INTERFACE_HEADERS
-    src/interfaces/IInputSource.h
-)
-
-# Scanner
-set(SCANNER_SOURCES
-    src/scanner/GameScanner.cpp
-)
-
-set(SCANNER_HEADERS
-    src/scanner/GameScanner.h
-    src/scanner/GameInfo.h
-)
-
-# Network (WebSocket)
-set(NETWORK_SOURCES
-    src/network/WebSocketInputSource.cpp
-)
-
-set(NETWORK_HEADERS
-    src/network/WebSocketInputSource.h
-)
-
-# QR Code Generator
-set(QRCODE_SOURCES
-    src/qrcode/QrCodeGenerator.cpp
-    src/qrcode/qrcodegen/qrcodegen.cpp
-)
-
-set(QRCODE_HEADERS
-    src/qrcode/QrCodeGenerator.h
-    src/qrcode/qrcodegen/qrcodegen.h
-)
-
-# Combine all sources
-set(ALL_SOURCES
-    ${CORE_SOURCES}
-    ${UI_SOURCES}
-    ${INPUT_SOURCES}
-    ${MANAGER_SOURCES}
-    ${SCANNER_SOURCES}
-    ${NETWORK_SOURCES}
-    ${QRCODE_SOURCES}
-)
-
-set(ALL_HEADERS
-    ${CORE_HEADERS}
-    ${UI_HEADERS}
-    ${INPUT_HEADERS}
-    ${MANAGER_HEADERS}
-    ${INTERFACE_HEADERS}
-    ${SCANNER_HEADERS}
-    ${NETWORK_HEADERS}
-    ${QRCODE_HEADERS}
-)
+# Snake game
+add_subdirectory(games/snake)
 
 # ============================================================================
-# Create executable
-# ============================================================================
-
-add_executable(${PROJECT_NAME} ${ALL_SOURCES} ${ALL_HEADERS})
-
-# Add include directories for each module
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/input
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/managers
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/interfaces
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/scanner
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/network
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/qrcode
-)
-
-# Add ViGEm include if found
-if(VIGEM_FOUND)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${VIGEM_INCLUDE_DIR})
-    target_compile_definitions(${PROJECT_NAME} PRIVATE VIGEM_AVAILABLE)
-endif()
-
-# Link Qt libraries
-target_link_libraries(${PROJECT_NAME} 
-    Qt6::Core
-    Qt6::Widgets
-    Qt6::Gui
-    Qt6::Network
-    Qt6::WebSockets
-    Qt6::Svg
-)
-
-# Link ViGEmClient if found
-if(VIGEM_FOUND)
-    target_link_libraries(${PROJECT_NAME} ${VIGEM_LIBRARY})
-    if(WIN32)
-        target_link_libraries(${PROJECT_NAME} setupapi)
-    endif()
-    message(STATUS "ViGEmClient will be linked")
-endif()
-
-# Set output directory
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
-
-# Install target
-install(TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION bin
-)
-
-# ============================================================================
-# Module summary
+# Summary
 # ============================================================================
 
 message(STATUS "=== VirtualController v2.0 Build Configuration ===")
-message(STATUS "Modules:")
-message(STATUS "  - Core:       ${CORE_SOURCES}")
-message(STATUS "  - UI:         ${UI_SOURCES}")
-message(STATUS "  - Input:      ${INPUT_SOURCES}")
-message(STATUS "  - Managers:   ${MANAGER_SOURCES}")
-message(STATUS "  - Scanner:    ${SCANNER_SOURCES}")
-message(STATUS "  - Network:    ${NETWORK_SOURCES}")
-message(STATUS "  - QR Code:    ${QRCODE_SOURCES}")
-message(STATUS "  - Interfaces: ${INTERFACE_HEADERS}")
+message(STATUS "Components:")
+message(STATUS "  - Desktop Launcher (Qt6)  : launcher/")
+message(STATUS "  - Game Server (TCP)        : server/")
+message(STATUS "  - Snake Game Client (SFML) : games/snake/")
+message(STATUS "  - Mobile Controller       : mobile_controller/")
 message(STATUS "==================================================")

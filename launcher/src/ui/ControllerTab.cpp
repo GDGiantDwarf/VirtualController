@@ -13,13 +13,25 @@ ControllerTab::ControllerTab(QWidget* parent)
 }
 
 ControllerTab::~ControllerTab() {
-    // Clean up all input sources
+    // Skip cleanup—let OS reclaim resources on process exit
+    // Attempting cleanup of ViGEm resources blocks process termination
+}
+
+void ControllerTab::shutdown() {
+    // Stop and clear all input sources (this also closes controller windows)
+    for (auto &src : m_inputSources) {
+        if (src) src->stop();
+    }
     m_inputSources.clear();
-    
-    // Clean up manager
+
+    // Cleanup ViGEm manager and release handles
     if (m_manager) {
         m_manager->cleanup();
+        m_manager.reset();
     }
+
+    m_activeControllerCount = 0;
+    updateControllerStatus();
 }
 
 void ControllerTab::setupUI() {

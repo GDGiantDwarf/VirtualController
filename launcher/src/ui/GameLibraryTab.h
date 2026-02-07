@@ -13,7 +13,7 @@ class GameLibraryTab : public QWidget {
     Q_OBJECT
     
 public:
-    explicit GameLibraryTab(QWidget* parent = nullptr);
+    explicit GameLibraryTab(QWidget* parent = nullptr, const QString& serverHost = "127.0.0.1", int serverPort = 8765);
     
 private slots:
     void onGameClicked(QListWidgetItem* item);
@@ -28,6 +28,8 @@ private:
     QPushButton* refreshButton;
     GameScanner* scanner;
     QVector<GameInfo> games;
+    QString serverHost;
+    int serverPort;
 };
 
 #endif // GAMELIBRARYTAB_H

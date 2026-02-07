@@ -11,8 +11,11 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
     
 public:
-    explicit MainWindow(QWidget* parent = nullptr);
+    explicit MainWindow(const QString& serverHost = "127.0.0.1", int serverPort = 8765, QWidget* parent = nullptr);
     ~MainWindow();
+    
+protected:
+    void closeEvent(QCloseEvent* event) override;
     
 private:
     void setupUI();
@@ -21,6 +24,8 @@ private:
     QTabWidget* tabWidget;
     GameLibraryTab* libraryTab;
     ControllerTab* controllerTab;
+    QString serverHost;
+    int serverPort;
     WebSocketTab* webSocketTab;
 };
 

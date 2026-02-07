@@ -25,6 +25,9 @@ class ControllerTab : public QWidget {
 public:
     explicit ControllerTab(QWidget* parent = nullptr);
     ~ControllerTab();
+
+    // Explicitly stop all inputs and cleanup manager
+    void shutdown();
     
 private slots:
     void onAddControllerClicked();
