@@ -1,4 +1,4 @@
-# VirtualController v2.0
+# VirtualController
 
 Multi-player virtual controller system using ViGEmBus for Windows with client-server network architecture.
 
