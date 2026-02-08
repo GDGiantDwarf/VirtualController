@@ -31,8 +31,10 @@ jobs:
         # Build DLL version (uses /MD dynamic runtime like Qt)
         msbuild ViGEmClient.sln /p:Configuration=Release_DLL /p:Platform=x64 /p:PlatformToolset=v143
         
-        # Copy lib to expected location
-        copy lib/release/x64/ViGEmClient.lib lib/
+        # Copy lib and dll to expected locations
+        mkdir -p lib
+        copy bin/release/x64/ViGEmClient.lib lib/
+        copy bin/release/x64/ViGEmClient.dll lib/
         
     - name: Build Launcher
       working-directory: launcher
