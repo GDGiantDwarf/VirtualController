@@ -23,17 +23,23 @@ jobs:
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
     
-    - name: Download ViGEmClient SDK
+    - name: Download and build ViGEmClient
       run: |
         Invoke-WebRequest -Uri "https://github.com/nefarius/ViGEmClient/archive/refs/tags/v1.16.18.0.zip" -OutFile "vigem.zip"
-        Expand-Archive -Path "vigem.zip" -DestinationPath "ViGEmClient"
+        Expand-Archive -Path "vigem.zip" -DestinationPath "."
+        cd ViGEmClient-1.16.18.0
+        # Build using MSBuild (it's a VS solution, not CMake)
+        msbuild src/ViGEmClient.vcxproj /p:Configuration=Release /p:Platform=x64
+        # Copy to locations expected by CMakeLists.txt
+        mkdir -p lib
+        copy bin/release/x64/ViGEmClient.lib lib/
         
     - name: Build Launcher
       working-directory: launcher
       run: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_PREFIX_PATH="$env:Qt6_DIR" -DVIGEM_SDK="${{ github.workspace }}/ViGEmClient"
+        cmake .. -DCMAKE_PREFIX_PATH="$env:Qt6_DIR" -DVIGEM_SDK="${{ github.workspace }}/ViGEmClient-1.16.18.0"
         cmake --build . --config Release
         
     - name: Verify build succeeded
