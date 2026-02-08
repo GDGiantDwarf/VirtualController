@@ -4,32 +4,34 @@ project(snake VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Optional: If using vcpkg, set the toolchain file
-# set(CMAKE_TOOLCHAIN_FILE "<path-to-vcpkg>/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+# vcpkg toolchain file is passed from root CMakeLists.txt
+# via CMAKE_TOOLCHAIN_FILE - no need to set it here
 
-# Find SFML (version 3.0 compatible)
+# Find SFML (vcpkg will provide this automatically)
 find_package(SFML 3.0 COMPONENTS Graphics Window System REQUIRED)
 
 # Build networked client as "snake.exe" (launcher will find this)
-add_executable(snake snake_client.cpp)
+add_executable(snake snake.cpp)
 
-# Link SFML and socket libraries
+# Link SFML libraries
 target_link_libraries(snake 
     SFML::Graphics
     SFML::Window
     SFML::System
 )
 
+# Windows socket library for TCP networking
 if(WIN32)
     target_link_libraries(snake ws2_32)
 endif()
 
-# Set output directory 
+# Set output directory
 set_target_properties(snake PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
 )
 
-# Automatically copy SFML DLLs to output directory after build
+# Copy SFML DLLs to output directory after build
+# (vcpkg-managed DLLs will be automatically found)
 add_custom_command(TARGET snake POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:SFML::Graphics>
@@ -38,3 +40,5 @@ add_custom_command(TARGET snake POST_BUILD
         "$<TARGET_FILE_DIR:snake>"
     COMMENT "Copying SFML DLLs to output directory"
 )
+
+message(STATUS "Snake game configured with SFML from vcpkg")
