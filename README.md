@@ -19,7 +19,28 @@ Multi-player virtual controller system using ViGEmBus for Windows with client-se
 
 ## Quick Start
 
-### Build Everything
+### Build Everything (Single Command)
+
+Build all components at once from the root directory:
+
+```powershell
+mkdir build
+cd build
+cmake .. -G "Visual Studio 17 2022" -A x64 `
+  -DVIGEM_SDK="<path-to-vigem>" `
+  -DQt6_DIR="<path-to-qt6>/lib/cmake/Qt6" `
+  -DSFML_DIR="<path-to-sfml>/lib/cmake/SFML"
+cmake --build . --config Release
+```
+
+All executables will be in `build/bin/Release/`:
+- `GameLibraryLauncher.exe`
+- `GameServer.exe`
+- `snake.exe`
+
+### Build Components Separately
+
+Alternatively, build each component independently:
 
 ```powershell
 # Launcher (requires Qt6 and ViGEm paths - see BUILD.md)
@@ -46,15 +67,20 @@ cmake --build . --config Release
 ## Running the Application
 
 ```powershell
+# If you built from root build directory:
 # Start the server (in terminal 1)
-.\server\build\bin\Release\GameServer.exe
+.\build\bin\Release\GameServer.exe
 
 # Start the launcher (in terminal 2)
+.\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8765
+
+# Or if you built components separately:
+.\server\build\bin\Release\GameServer.exe
 .\launcher\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8765
 
 # Launch Snake from the launcher UI
 # Or run directly:
-.\games\snake\build\bin\Release\snake.exe 127.0.0.1 8765
+.\build\bin\Release\snake.exe 127.0.0.1 8765
 ```
 
 ## Debug Proxy (Optional)
