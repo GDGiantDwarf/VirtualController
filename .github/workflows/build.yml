@@ -35,9 +35,17 @@ jobs:
         # Copy to location CMakeLists.txt expects (lib/)
         copy lib/release/x64/ViGEmClient.lib lib/
         
+        # Debug: show structure
+        echo "=== ViGEmClient SDK structure ==="
+        dir
+        dir include
+        dir include/ViGEm
+        dir lib
+        
     - name: Build Launcher
       working-directory: launcher
       run: |
+        echo "=== VIGEM_SDK will be: ${{ github.workspace }}/ViGEmClient-1.16.18.0 ==="
         mkdir build
         cd build
         cmake .. -DCMAKE_PREFIX_PATH="$env:Qt6_DIR" -DVIGEM_SDK="${{ github.workspace }}/ViGEmClient-1.16.18.0"
