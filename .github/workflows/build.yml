@@ -23,32 +23,23 @@ jobs:
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
     
-    - name: Download and build ViGEmClient
+    - name: Clone and build ViGEmClient
       run: |
-        Invoke-WebRequest -Uri "https://github.com/nefarius/ViGEmClient/archive/refs/tags/v1.16.18.0.zip" -OutFile "vigem.zip"
-        Expand-Archive -Path "vigem.zip" -DestinationPath "."
-        cd ViGEmClient-1.16.18.0
+        git clone https://github.com/nefarius/ViGEmClient.git
+        cd ViGEmClient
         
         # Build static library for x64, upgrade toolset to v143 (VS2022)
         msbuild ViGEmClient.sln /p:Configuration=Release_LIB /p:Platform=x64 /p:PlatformToolset=v143
         
-        # Copy to location CMakeLists.txt expects (lib/)
+        # Copy lib to expected location
         copy lib/release/x64/ViGEmClient.lib lib/
-        
-        # Debug: show structure
-        echo "=== ViGEmClient SDK structure ==="
-        dir
-        dir include
-        dir include/ViGEm
-        dir lib
         
     - name: Build Launcher
       working-directory: launcher
       run: |
-        echo "=== VIGEM_SDK will be: ${{ github.workspace }}/ViGEmClient-1.16.18.0 ==="
         mkdir build
         cd build
-        cmake .. -DCMAKE_PREFIX_PATH="$env:Qt6_DIR" -DVIGEM_SDK="${{ github.workspace }}/ViGEmClient-1.16.18.0"
+        cmake .. -DCMAKE_PREFIX_PATH="$env:Qt6_DIR" -DVIGEM_SDK="${{ github.workspace }}/ViGEmClient"
         cmake --build . --config Release
         
     - name: Verify build succeeded
