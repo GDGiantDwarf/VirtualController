@@ -29,8 +29,8 @@ jobs:
         Expand-Archive -Path "vigem.zip" -DestinationPath "."
         cd ViGEmClient-1.16.18.0
         
-        # Build static library for x64
-        msbuild ViGEmClient.sln /p:Configuration=Release_LIB /p:Platform=x64
+        # Build static library for x64, upgrade toolset to v143 (VS2022)
+        msbuild ViGEmClient.sln /p:Configuration=Release_LIB /p:Platform=x64 /p:PlatformToolset=v143
         
         echo "=== Finding all .lib files ==="
         Get-ChildItem -Recurse -Filter "*.lib"
