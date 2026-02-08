@@ -1,0 +1,41 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-launcher:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.7.0'
+        arch: 'win64_msvc2019_64'
+        modules: 'qtwebsockets'
+    
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+    
+    - name: Build Launcher
+      working-directory: launcher
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_PREFIX_PATH="$env:Qt6_DIR"
+        cmake --build . --config Release
+        
+    - name: Verify build succeeded
+      run: |
+        if (Test-Path "launcher/build/bin/Release/GameLibraryLauncher.exe") {
+          echo "Build succeeded!"
+        } else {
+          echo "Build failed - executable not found"
+          exit 1
+        }
