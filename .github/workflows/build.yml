@@ -32,14 +32,8 @@ jobs:
         # Build static library for x64, upgrade toolset to v143 (VS2022)
         msbuild ViGEmClient.sln /p:Configuration=Release_LIB /p:Platform=x64 /p:PlatformToolset=v143
         
-        echo "=== Finding all .lib files ==="
-        Get-ChildItem -Recurse -Filter "*.lib"
-        
-        mkdir -p lib
-        Get-ChildItem -Recurse -Filter "ViGEmClient.lib" | ForEach-Object { copy $_.FullName lib/ }
-        
-        echo "=== Final lib directory ==="
-        dir lib
+        # Copy to location CMakeLists.txt expects (lib/)
+        copy lib/release/x64/ViGEmClient.lib lib/
         
     - name: Build Launcher
       working-directory: launcher
