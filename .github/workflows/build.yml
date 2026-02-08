@@ -28,8 +28,8 @@ jobs:
         git clone https://github.com/nefarius/ViGEmClient.git
         cd ViGEmClient
         
-        # Build static library for x64, upgrade toolset to v143 (VS2022)
-        msbuild ViGEmClient.sln /p:Configuration=Release_LIB /p:Platform=x64 /p:PlatformToolset=v143
+        # Build DLL version (uses /MD dynamic runtime like Qt)
+        msbuild ViGEmClient.sln /p:Configuration=Release_DLL /p:Platform=x64 /p:PlatformToolset=v143
         
         # Copy lib to expected location
         copy lib/release/x64/ViGEmClient.lib lib/
