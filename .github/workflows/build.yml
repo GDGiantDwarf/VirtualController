@@ -28,26 +28,23 @@ jobs:
         Invoke-WebRequest -Uri "https://github.com/nefarius/ViGEmClient/archive/refs/tags/v1.16.18.0.zip" -OutFile "vigem.zip"
         Expand-Archive -Path "vigem.zip" -DestinationPath "."
         cd ViGEmClient-1.16.18.0
-        # Check if CMakeLists.txt exists, otherwise use MSBuild
-        if (Test-Path "CMakeLists.txt") {
-          mkdir build
-          cd build
-          cmake .. -G "Visual Studio 17 2022" -A x64
-          cmake --build . --config Release
-          cd ..
-          # CMake typically outputs to build/Release
-          mkdir -p lib
-          copy build/Release/ViGEmClient.lib lib/ -ErrorAction SilentlyContinue
-          copy build/ViGEmClient.lib lib/ -ErrorAction SilentlyContinue
-        } else {
-          # Use MSBuild - first check available configurations
-          echo "=== Checking available configurations ==="
-          Get-Content src/ViGEmClient.vcxproj | Select-String -Pattern "Configuration\|Platform"
-          # Try common configurations
-          msbuild src/ViGEmClient.vcxproj /p:Configuration=Release /p:Platform=Win32
-          mkdir -p lib
-          Get-ChildItem -Recurse -Filter "ViGEmClient.lib" | ForEach-Object { copy $_.FullName lib/ }
-        }
+        
+        # Debug: show what files exist
+        echo "=== Files in root ==="
+        dir
+        
+        echo "=== Looking for build configs in vcxproj ==="
+        Get-Content src/ViGEmClient.vcxproj | Select-String -Pattern "ItemDefinitionGroup|ProjectConfiguration Include"
+        
+        echo "=== Trying to build with solution file ==="
+        msbuild ViGEmClient.sln /p:Configuration=Release /p:Platform=x64 /t:Build
+        
+        echo "=== Finding all .lib files ==="
+        Get-ChildItem -Recurse -Filter "*.lib"
+        
+        mkdir -p lib
+        Get-ChildItem -Recurse -Filter "ViGEmClient.lib" | ForEach-Object { copy $_.FullName lib/ }
+        
         echo "=== Final lib directory ==="
         dir lib
         
