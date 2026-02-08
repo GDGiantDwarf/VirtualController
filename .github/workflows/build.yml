@@ -29,15 +29,8 @@ jobs:
         Expand-Archive -Path "vigem.zip" -DestinationPath "."
         cd ViGEmClient-1.16.18.0
         
-        # Debug: show what files exist
-        echo "=== Files in root ==="
-        dir
-        
-        echo "=== Looking for build configs in vcxproj ==="
-        Get-Content src/ViGEmClient.vcxproj | Select-String -Pattern "ItemDefinitionGroup|ProjectConfiguration Include"
-        
-        echo "=== Trying to build with solution file ==="
-        msbuild ViGEmClient.sln /p:Configuration=Release /p:Platform=x64 /t:Build
+        # Build static library for x64
+        msbuild ViGEmClient.sln /p:Configuration=Release_LIB /p:Platform=x64
         
         echo "=== Finding all .lib files ==="
         Get-ChildItem -Recurse -Filter "*.lib"
