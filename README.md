@@ -11,37 +11,16 @@ Multi-player virtual controller system using ViGEmBus for Windows with client-se
 ## Prerequisites
 
 - Windows 10/11 (64-bit)
-- Visual Studio 2022 with C++
+- Visual Studio 2022 with C++17 or later
 - CMake 3.16+
 - Qt 6.10+ - for launcher
 - SFML 3.0+ - for games
-- [ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases) - for launcher
+- [ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases) - for virtual controllers.
 
 ## Quick Start
+To build the project, you only need to run the executable `build.bat` while in the root directory
 
-### Build Everything
-
-```powershell
-# Launcher (requires Qt6 and ViGEm paths - see BUILD.md)
-cd launcher/build
-cmake .. -G "Visual Studio 17 2022" -A x64 `
-  -DVIGEM_SDK="<path-to-vigem>" `
-  -DQt6_DIR="<path-to-qt6>/lib/cmake/Qt6"
-cmake --build . --config Release
-
-# Server (no dependencies)
-cd ../../server/build
-cmake .. -G "Visual Studio 17 2022" -A x64
-cmake --build . --config Release
-
-# Snake (requires SFML path - see BUILD.md)
-cd ../../games/snake/build
-cmake .. -G "Visual Studio 17 2022" -A x64 `
-  -DSFML_DIR="<path-to-sfml>/lib/cmake/SFML"
-cmake --build . --config Release
-```
-
-**Note**: Replace `<path-to-*>` with your actual installation paths
+**Note**: This assumes that Qt, ViGEmClient and vcpkg are in their default installation paths. you may edit those paths directly in the build.bat file.
 
 ## Running the Application
 
@@ -117,3 +96,5 @@ games/
 ```
 
 The launcher's GameScanner automatically discovers games in the `games/` folder.
+It will only detect games whose .exe file matches the folder name.
+Any matching .ico file will also be used in the launcher to represent your game
