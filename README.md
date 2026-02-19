@@ -90,6 +90,20 @@ VirtualController/
 - **Client**: Input capture, rendering, JSON protocol over TCP
 - **Launcher**: Discovers games, manages local virtual controllers
 
+## Documentation
+
+Comprehensive technical documentation is available in the `docs/` directory:
+
+- **[Documentation Overview](docs/00_DOCUMENTATION_OVERVIEW.md)** - Start here for navigation
+- **[Core Architecture](docs/01_CORE_ARCHITECTURE.md)** - System design and components
+- **[Server & Networking](docs/02_SERVER_AND_NETWORKING.md)** - Server implementation details
+- **[Game Protocol](docs/03_GAME_PROTOCOL.md)** - JSON message specification
+- **[Launcher & Discovery](docs/04_LAUNCHER_AND_DISCOVERY.md)** - Game launcher details
+- **[Snake Game Implementation](docs/05_SNAKE_GAME_IMPLEMENTATION.md)** - Reference game walkthrough
+- **[Adding New Games](docs/06_ADDING_NEW_GAMES.md)** - Step-by-step development guide
+- **[Build System](docs/07_BUILD_SYSTEM.md)** - CMake configuration and compilation
+- **[Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md)** - Testing scenarios and troubleshooting
+
 ## Development
 
 ### Adding Games
@@ -98,12 +112,13 @@ Games must follow this structure:
 ```
 games/
 └── your_game/
-    ├── your_game.exe          # Must match folder name
-    └── build/                 # Build directory
-        └── bin/Release/
-            └── your_game.exe
+    ├── your_game.cpp          # Game source
+    ├── your_game.ico          # 48×48 icon
+    └── CMakeLists.txt         # Build configuration
 ```
 
-The launcher's GameScanner automatically discovers games in the `games/` folder.
-It will only detect games whose .exe file matches the folder name.
-Any matching .ico file will also be used in the launcher to represent your game
+See [Adding New Games](docs/06_ADDING_NEW_GAMES.md) for complete instructions.
+
+The launcher's GameScanner automatically discovers games in the build output directory (`build/bin/Release/`).
+It will only detect games whose .exe file matches the game name.
+Any matching .ico file will also be used in the launcher to represent your game.
