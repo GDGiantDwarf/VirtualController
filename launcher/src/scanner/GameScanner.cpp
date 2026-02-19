@@ -11,24 +11,28 @@ GameScanner::GameScanner(QObject* parent)
 QVector<GameInfo> GameScanner::scanGames(const QString& gamesDirectory) {
     QVector<GameInfo> games;
     
-    QDir gamesDir(gamesDirectory);
-    if (!gamesDir.exists()) {
-        qWarning() << "Games directory does not exist:" << gamesDirectory;
-        return games;
-    }
+    // Get all .exe files from the build output directory (except the launcher itself)
+    QDir buildDir(QCoreApplication::applicationDirPath());
+    QStringList exeFiles = buildDir.entryList(QStringList("*.exe"), QDir::Files);
     
-    // Get all subdirectories
-    QFileInfoList folders = gamesDir.entryInfoList(
-        QDir::Dirs | QDir::NoDotAndDotDot, 
-        QDir::Name
-    );
-    
-    for (const QFileInfo& folderInfo : folders) {
-        QString folderName = folderInfo.fileName();
-        QString folderPath = folderInfo.absoluteFilePath();
+    for (const QString& exeFile : exeFiles) {
+        QString gameName = exeFile.left(exeFile.length() - 4); // Remove .exe extension
         
-        if (isValidGameFolder(folderPath, folderName)) {
-            GameInfo game = createGameInfo(folderPath, folderName);
+        // Skip the launcher itself and server
+        if (gameName == "GameLibraryLauncher" || gameName == "GameServer") {
+            continue;
+        }
+        
+        // Validate that at least the executable exists
+        QString exePath = buildDir.filePath(exeFile);
+        QFileInfo exeInfo(exePath);
+        
+        if (exeInfo.exists() && exeInfo.isFile()) {
+            // Try to load icon from build directory, but don't require it
+            QString icoPath = buildDir.filePath(gameName + ".ico");
+            
+            // Create a dummy games folder path (not used anymore, but kept for compatibility)
+            GameInfo game(gameName, gamesDirectory + "/" + gameName, exePath, icoPath);
             games.append(game);
             qDebug() << "Found game:" << game.name << "at" << game.executablePath;
         }
@@ -38,18 +42,9 @@ QVector<GameInfo> GameScanner::scanGames(const QString& gamesDirectory) {
 }
 
 bool GameScanner::isValidGameFolder(const QString& folderPath, const QString& folderName) {
-    // Check if executable exists in the root build directory (unified build)
-    // Root build structure: VirtualController/build/bin/Release/<name>.exe
-    QDir rootBuildDir(QCoreApplication::applicationDirPath());
-    QString rootExePath = rootBuildDir.filePath(folderName + ".exe");
-    
-    QFileInfo rootExe(rootExePath);
-    if (rootExe.exists() && rootExe.isFile()) {
-        return true;
-    }
-
-    qDebug() << "Game folder" << folderName << "missing executable in root build:" << rootExePath;
-    return false;
+    // This function is now deprecated - we scan the build directory directly
+    // Kept for backward compatibility if needed
+    return true;
 }
 
 GameInfo GameScanner::createGameInfo(const QString& folderPath, const QString& folderName) {
@@ -57,9 +52,8 @@ GameInfo GameScanner::createGameInfo(const QString& folderPath, const QString& f
     QDir rootBuildDir(QCoreApplication::applicationDirPath());
     QString exePath = rootBuildDir.filePath(folderName + ".exe");
     
-    // Icon is in the game's source folder
-    QDir folder(folderPath);
-    QString icoPath = folder.filePath(folderName + ".ico");
+    // Icon is also in the build output directory now (copied at build time)
+    QString icoPath = rootBuildDir.filePath(folderName + ".ico");
     
     return GameInfo(folderName, folderPath, exePath, icoPath);
 }

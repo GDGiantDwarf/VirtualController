@@ -41,4 +41,12 @@ add_custom_command(TARGET snake POST_BUILD
     COMMENT "Copying SFML DLLs to output directory"
 )
 
+# Copy snake icon to output directory
+add_custom_command(TARGET snake POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/snake.ico"
+        "$<TARGET_FILE_DIR:snake>/snake.ico"
+    COMMENT "Copying snake.ico to output directory"
+)
+
 message(STATUS "Snake game configured with SFML from vcpkg")
