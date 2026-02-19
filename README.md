@@ -64,27 +64,34 @@ python debug_proxy.py
 
 ## Testing
 
-Run automated tests to validate protocol implementation and server connectivity:
+### Automated Tests (GitHub Actions CI)
+
+Protocol validation tests run automatically on every push and pull request:
 
 ```bash
-# Quick test - Protocol validation (no server required)
+# Run protocol tests locally (36 tests, no dependencies)
 python tests\test_protocol.py -v
-
-# Full test suite - Requires server
-# Terminal 1: Start GameServer
-.\build\bin\Release\GameServer.exe
-
-# Terminal 2: Run networking tests
-python tests\test_networking.py -v
 ```
 
-**Test Results**: 51 tests passing (36 protocol + 15 networking)
+**CI Status**: Protocol tests must pass before merging to main/develop.
 
-See [Testing Policy](docs/Testing%20Policy.pdf) for complete testing strategy and [Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md) for detailed procedures.
+### Full Test Suite (Local Testing)
 
-### Continuous Integration
+For complete testing including network functionality, run tests locally with built binaries:
 
-Automated tests run on every push and pull request via GitHub Actions. All tests must pass before merging.
+```bash
+# Terminal 1: Build and start GameServer
+build.bat
+.\build\bin\Release\GameServer.exe
+
+# Terminal 2: Run all tests
+python tests\test_protocol.py -v      # 36 protocol tests
+python tests\test_networking.py -v    # 15 networking tests
+```
+
+**Test Coverage**: 51 total tests (36 protocol + 15 networking)
+
+See [Testing Policy](docs/TESTING_POLICY.md) for complete testing strategy and [Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md) for detailed procedures.
 
 ## Architecture
 
