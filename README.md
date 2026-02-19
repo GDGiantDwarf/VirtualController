@@ -62,6 +62,30 @@ python debug_proxy.py
 .\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8766
 ```
 
+## Testing
+
+Run automated tests to validate protocol implementation and server connectivity:
+
+```bash
+# Quick test - Protocol validation (no server required)
+python tests\test_protocol.py -v
+
+# Full test suite - Requires server
+# Terminal 1: Start GameServer
+.\build\bin\Release\GameServer.exe
+
+# Terminal 2: Run networking tests
+python tests\test_networking.py -v
+```
+
+**Test Results**: 51 tests passing (36 protocol + 15 networking)
+
+See [Testing Policy](docs/Testing%20Policy.pdf) for complete testing strategy and [Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md) for detailed procedures.
+
+### Continuous Integration
+
+Automated tests run on every push and pull request via GitHub Actions. All tests must pass before merging.
+
 ## Architecture
 
 ### Project Structure
@@ -110,10 +134,6 @@ Comprehensive technical documentation is available in the `docs/` directory:
 - **[Adding New Games](docs/06_ADDING_NEW_GAMES.md)** - Step-by-step development guide
 - **[Build System](docs/07_BUILD_SYSTEM.md)** - CMake configuration and compilation
 - **[Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md)** - Testing scenarios and troubleshooting
-
-Additional resources:
-
-- **[Design Brief](docs/Design%20Brief.pdf)** - High-level design decisions and rationale
 - **[Testing Policy](docs/Testing%20Policy.pdf)** - Testing strategy, frameworks, and test types
 
 ## Development
