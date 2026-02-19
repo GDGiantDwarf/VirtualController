@@ -48,6 +48,16 @@ public:
      */
     int getAliveCount() const;
     
+    /**
+     * @brief Get number of connected players
+     */
+    int getPlayerCount() const;
+    
+    /**
+     * @brief Manually start the game (from lobby)
+     */
+    void startGame();
+    
 private:
     struct InternalPlayerState {
         int id{};
@@ -60,6 +70,7 @@ private:
     std::vector<InternalPlayerState> m_players;
     std::vector<Protocol::Vec2> m_food;
     bool m_gameActive{false};
+    int m_playerCount{0};
     std::mt19937 m_rng;
     
     void spawnFood();

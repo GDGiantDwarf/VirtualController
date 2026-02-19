@@ -50,9 +50,9 @@ if(nlohmann_json_FOUND)
     target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 endif()
 
-# Set output directory
+# Set output directory (unified build output)
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
 )
 
 # Install target

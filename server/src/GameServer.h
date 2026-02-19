@@ -64,7 +64,7 @@ private:
     void handleClientMessages();
     void broadcastGameState();
     
-    std::string serializeGameState(const Protocol::GameState& state);
+    std::string serializeGameState(const Protocol::GameState& state, int connectedCount);
     Protocol::Message parseMessage(const std::string& data);
     bool isValidJson(const std::string& data);
 };

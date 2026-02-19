@@ -7,7 +7,8 @@ GameLogic::GameLogic() : m_rng(std::random_device{}()) {
 void GameLogic::init(int playerCount) {
     m_players.clear();
     m_food.clear();
-    m_gameActive = true;
+    m_gameActive = false; // Start in lobby mode, not active
+    m_playerCount = playerCount;
     
     // Starting positions for up to 4 players
     static std::array<Protocol::Vec2, 4> starts{
@@ -105,6 +106,14 @@ int GameLogic::getAliveCount() const {
         if (p.alive) count++;
     }
     return count;
+}
+
+int GameLogic::getPlayerCount() const {
+    return m_playerCount;
+}
+
+void GameLogic::startGame() {
+    m_gameActive = true;
 }
 
 void GameLogic::spawnFood() {

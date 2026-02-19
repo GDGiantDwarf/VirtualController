@@ -1,6 +1,7 @@
 #include "GameScanner.h"
 #include <QDir>
 #include <QFileInfo>
+#include <QCoreApplication>
 #include <QDebug>
 
 GameScanner::GameScanner(QObject* parent)
@@ -37,40 +38,28 @@ QVector<GameInfo> GameScanner::scanGames(const QString& gamesDirectory) {
 }
 
 bool GameScanner::isValidGameFolder(const QString& folderPath, const QString& folderName) {
-    QDir folder(folderPath);
-
-    // Prefer build/bin/Release/<name>.exe if present, fall back to <name>.exe
-    const QString releaseExePath = folder.filePath("build/bin/Release/" + folderName + ".exe");
-    const QString flatExePath = folder.filePath(folderName + ".exe");
-
-    QFileInfo releaseExe(releaseExePath);
-    QFileInfo flatExe(flatExePath);
-
-    if (releaseExe.exists() && releaseExe.isFile()) {
+    // Check if executable exists in the root build directory (unified build)
+    // Root build structure: VirtualController/build/bin/Release/<name>.exe
+    QDir rootBuildDir(QCoreApplication::applicationDirPath());
+    QString rootExePath = rootBuildDir.filePath(folderName + ".exe");
+    
+    QFileInfo rootExe(rootExePath);
+    if (rootExe.exists() && rootExe.isFile()) {
         return true;
     }
 
-    if (flatExe.exists() && flatExe.isFile()) {
-        return true;
-    }
-
-    qDebug() << "Game folder" << folderName << "missing executable in either" << releaseExePath
-             << "or" << flatExePath;
+    qDebug() << "Game folder" << folderName << "missing executable in root build:" << rootExePath;
     return false;
 }
 
 GameInfo GameScanner::createGameInfo(const QString& folderPath, const QString& folderName) {
+    // Use executable from root build directory (unified build)
+    QDir rootBuildDir(QCoreApplication::applicationDirPath());
+    QString exePath = rootBuildDir.filePath(folderName + ".exe");
+    
+    // Icon is in the game's source folder
     QDir folder(folderPath);
-
-    // Pick build/bin/Release executable if available; otherwise use flat exe
-    QString exePath = folder.filePath("build/bin/Release/" + folderName + ".exe");
-    QFileInfo exeInfo(exePath);
-    if (!exeInfo.exists() || !exeInfo.isFile()) {
-        exePath = folder.filePath(folderName + ".exe");
-    }
-
     QString icoPath = folder.filePath(folderName + ".ico");
     
-    // Icon is optional, exe is mandatory
     return GameInfo(folderName, folderPath, exePath, icoPath);
 }

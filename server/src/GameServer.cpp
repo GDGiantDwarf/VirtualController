@@ -196,10 +196,10 @@ void GameServer::acceptLoop() {
         std::cout << "Client connected: ID=" << connId << std::endl;
         m_connections.push_back(std::move(conn));
         
-        // Start game if we have at least one player and game not started
+        // Initialize lobby if first player connects
         if (m_connections.size() == 1 && !m_gameLogic.isGameActive()) {
             m_gameLogic.init(GameLogic::MAX_PLAYERS);
-            std::cout << "Game initialized with " << GameLogic::MAX_PLAYERS << " players" << std::endl;
+            std::cout << "Lobby initialized, waiting for game start..." << std::endl;
         }
     }
 }
@@ -261,22 +261,33 @@ void GameServer::handleClientMessages() {
                 m_pendingInputs[playerId].direction = msg.direction;
             }
         }
+        else if (msg.type == Protocol::MessageType::START_GAME) {
+            if (!m_gameLogic.isGameActive()) {
+                std::cout << "Game started by player " << conn->getPlayerId() << std::endl;
+                m_gameLogic.startGame();
+            }
+        }
     }
 }
 
 void GameServer::broadcastGameState() {
     Protocol::GameState state = m_gameLogic.getState();
-    std::string stateJson = serializeGameState(state);
     
+    // Add connected count to the state JSON
     std::lock_guard<std::mutex> lock(m_connectionsMutex);
+    int connectedCount = m_connections.size();
+    
+    std::string stateJson = serializeGameState(state, connectedCount);
+    
     for (auto& conn : m_connections) {
         conn->send(stateJson);
     }
 }
 
-std::string GameServer::serializeGameState(const Protocol::GameState& state) {
+std::string GameServer::serializeGameState(const Protocol::GameState& state, int connectedCount) {
     std::ostringstream oss;
     oss << "{\"type\":\"state\",\"active\":" << (state.gameActive ? "true" : "false");
+    oss << ",\"connected\":" << connectedCount;
     
     // Serialize players
     oss << ",\"players\":[";
@@ -313,6 +324,7 @@ Protocol::Message GameServer::parseMessage(const std::string& data) {
     
     // Simple JSON parsing (in production, use a proper JSON library)
     const size_t npos = static_cast<size_t>(-1);
+    
     size_t typePos = data.find("\"type\":\"input\"");
     if (typePos != npos) {
         msg.type = Protocol::MessageType::INPUT;
@@ -331,6 +343,14 @@ Protocol::Message GameServer::parseMessage(const std::string& data) {
             pidPos += 11; // Skip "playerId":
             msg.playerId = std::stoi(data.substr(pidPos));
         }
+        
+        return msg;
+    }
+    
+    size_t startPos = data.find("\"type\":\"start\"");
+    if (startPos != npos) {
+        msg.type = Protocol::MessageType::START_GAME;
+        return msg;
     }
     
     return msg;

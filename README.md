@@ -18,22 +18,30 @@ Multi-player virtual controller system using ViGEmBus for Windows with client-se
 - [ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases) - for virtual controllers.
 
 ## Quick Start
-To build the project, you only need to run the executable `build.bat` while in the root directory
+To build the project, run `build.bat` from the **root directory only**:
 
-**Note**: This assumes that Qt, ViGEmClient and vcpkg are in their default installation paths. you may edit those paths directly in the build.bat file.
+```bash
+build.bat
+```
+
+**⚠️ Important:** Always build from the root directory. The project uses a unified build system - do NOT build from individual component folders (launcher/, server/, games/).
+
+**Note**: This assumes Qt, ViGEmClient, and vcpkg are in their default installation paths. Edit paths in build.bat if needed.
+
+All executables are output to: `build/bin/Release/`
 
 ## Running the Application
 
 ```powershell
 # Start the server (in terminal 1)
-.\server\build\bin\Release\GameServer.exe
+.\build\bin\Release\GameServer.exe
 
 # Start the launcher (in terminal 2)
-.\launcher\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8765
+.\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8765
 
-# Launch Snake from the launcher UI
+# Launch Snake from the launcher UI (recommended)
 # Or run directly:
-.\games\snake\build\bin\Release\snake.exe 127.0.0.1 8765
+.\build\bin\Release\snake.exe 127.0.0.1 8765
 ```
 
 ## Debug Proxy (Optional)
@@ -44,7 +52,7 @@ Monitor all network traffic in real-time:
 python debug_proxy.py
 
 # Then connect launcher to proxy instead:
-.\launcher\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8766
+.\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8766
 ```
 
 ## Architecture
@@ -53,16 +61,17 @@ python debug_proxy.py
 
 ```
 VirtualController/
+├── build/             # Unified build output (all executables here)
+│   └── bin/Release/   # GameLibraryLauncher.exe, GameServer.exe, snake.exe
 ├── launcher/          # Qt6 launcher + ViGEm controller manager
-│   ├── src/
-│   └── build/
+│   └── src/
 ├── server/            # TCP game server
-│   ├── src/
-│   └── build/
+│   └── src/
 └── games/snake/       # SFML networked game client
-    ├── snake_client.cpp
-    └── build/
+    └── snake.cpp
 ```
+
+**Note:** Individual component folders (launcher/, server/, games/) should NOT contain build/ directories. All builds use the root `build/` directory.
 
 ### Multiplayer Flow
 
