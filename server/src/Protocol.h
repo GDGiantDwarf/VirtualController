@@ -72,6 +72,7 @@ struct Message {
     Direction direction{Direction::Right};
     GameState state;
     std::string error;
+    int controllerCount{0};  // Number of controllers on the client PC
 };
 
 } // namespace Protocol

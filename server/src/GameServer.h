@@ -63,6 +63,7 @@ private:
     void gameLoop();
     void handleClientMessages();
     void broadcastGameState();
+    int getTotalControllerCount() const;  // Count total controllers across all connections
     
     std::string serializeGameState(const Protocol::GameState& state, int connectedCount);
     Protocol::Message parseMessage(const std::string& data);

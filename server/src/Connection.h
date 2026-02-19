@@ -65,10 +65,21 @@ public:
      */
     int getPlayerId() const { return m_playerId; }
     
+    /**
+     * @brief Set controller count for this connection
+     */
+    void setControllerCount(int count) { m_controllerCount = count; }
+    
+    /**
+     * @brief Get controller count for this connection
+     */
+    int getControllerCount() const { return m_controllerCount; }
+    
 private:
     SocketHandle m_socket;
     int m_id;
     int m_playerId{-1};
+    int m_controllerCount{0};
     bool m_alive{true};
 };
 

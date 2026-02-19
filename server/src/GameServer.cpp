@@ -195,13 +195,15 @@ void GameServer::acceptLoop() {
         
         std::cout << "Client connected: ID=" << connId << std::endl;
         m_connections.push_back(std::move(conn));
-        
-        // Initialize lobby if first player connects
-        if (m_connections.size() == 1 && !m_gameLogic.isGameActive()) {
-            m_gameLogic.init(GameLogic::MAX_PLAYERS);
-            std::cout << "Lobby initialized, waiting for game start..." << std::endl;
-        }
     }
+}
+
+int GameServer::getTotalControllerCount() const {
+    int total = 0;
+    for (const auto& conn : m_connections) {
+        total += conn->getControllerCount();
+    }
+    return total;
 }
 
 void GameServer::gameLoop() {
@@ -253,7 +255,21 @@ void GameServer::handleClientMessages() {
         
         Protocol::Message msg = parseMessage(data);
         
-        if (msg.type == Protocol::MessageType::INPUT) {
+        if (msg.type == Protocol::MessageType::CONNECT) {
+            // Client reports how many controllers it has
+            conn->setControllerCount(msg.controllerCount);
+            std::cout << "Connection " << conn->getId() << " has " << msg.controllerCount << " controller(s)" << std::endl;
+            
+            // Initialize lobby with total controller count if in LOBBY state
+            if (m_gameLogic.getState().state == Protocol::GameStateType::LOBBY) {
+                int totalControllers = getTotalControllerCount();
+                if (totalControllers > 0) {
+                    m_gameLogic.init(totalControllers);
+                    std::cout << "Lobby initialized with " << totalControllers << " player(s), waiting for game start..." << std::endl;
+                }
+            }
+        }
+        else if (msg.type == Protocol::MessageType::INPUT) {
             std::lock_guard<std::mutex> inputLock(m_inputMutex);
             int playerId = msg.playerId >= 0 ? msg.playerId : conn->getPlayerId();
             if (playerId >= 0 && playerId < GameLogic::MAX_PLAYERS) {
@@ -265,11 +281,28 @@ void GameServer::handleClientMessages() {
             if (!m_gameLogic.isGameActive()) {
                 std::cout << "Game started by player " << conn->getPlayerId() << std::endl;
                 m_gameLogic.startGame();
+                
+                // Clear pending inputs for a clean start
+                for (int i = 0; i < GameLogic::MAX_PLAYERS; ++i) {
+                    m_pendingInputs[i].playerId = i;
+                    m_pendingInputs[i].direction = Protocol::Direction::Right;
+                }
             }
         }
         else if (msg.type == Protocol::MessageType::RESET_GAME) {
             std::cout << "Game reset by player " << conn->getPlayerId() << std::endl;
-            m_gameLogic.resetGame();
+            
+            // Reinitialize with current total controller count
+            int totalControllers = getTotalControllerCount();
+            if (totalControllers > 0) {
+                m_gameLogic.init(totalControllers);
+            }
+            
+            // Clear pending inputs to prevent old directions from carrying over
+            for (int i = 0; i < GameLogic::MAX_PLAYERS; ++i) {
+                m_pendingInputs[i].playerId = i;
+                m_pendingInputs[i].direction = Protocol::Direction::Right;
+            }
         }
     }
 }
@@ -277,10 +310,10 @@ void GameServer::handleClientMessages() {
 void GameServer::broadcastGameState() {
     Protocol::GameState state = m_gameLogic.getState();
     
-    // Add connected count to the state JSON
-    std::lock_guard<std::mutex> lock(m_connectionsMutex);
-    int connectedCount = m_connections.size();
+    // Count actual players in the game, not network connections
+    int connectedCount = state.players.size();
     
+    std::lock_guard<std::mutex> lock(m_connectionsMutex);
     std::string stateJson = serializeGameState(state, connectedCount);
     
     for (auto& conn : m_connections) {
@@ -329,6 +362,23 @@ Protocol::Message GameServer::parseMessage(const std::string& data) {
     
     // Simple JSON parsing (in production, use a proper JSON library)
     const size_t npos = static_cast<size_t>(-1);
+    
+    // Check for "connect" message with controller count
+    size_t connectPos = data.find("\"type\":\"connect\"");
+    if (connectPos != npos) {
+        msg.type = Protocol::MessageType::CONNECT;
+        
+        // Extract controller count
+        size_t ctrlPos = data.find("\"controllers\":");
+        if (ctrlPos != npos) {
+            ctrlPos += 14; // Skip "controllers":
+            msg.controllerCount = std::stoi(data.substr(ctrlPos));
+        } else {
+            msg.controllerCount = 1;  // Default to 1 if not specified
+        }
+        
+        return msg;
+    }
     
     size_t typePos = data.find("\"type\":\"input\"");
     if (typePos != npos) {

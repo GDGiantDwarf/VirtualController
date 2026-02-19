@@ -208,6 +208,20 @@ public:
         return result > 0;
     }
     
+    bool sendConnect(int controllerCount) {
+        if (!m_connected) return false;
+        
+        std::string msg = "{\"type\":\"connect\",\"controllers\":" + std::to_string(controllerCount) + "}\n";
+        
+        #ifdef _WIN32
+            int result = ::send(m_socket, msg.c_str(), static_cast<int>(msg.size()), 0);
+        #else
+            ssize_t result = ::send(m_socket, msg.c_str(), msg.size(), 0);
+        #endif
+        
+        return result > 0;
+    }
+    
     GameState receiveState() {
         GameState state;
         if (!m_connected) return state;
@@ -421,6 +435,16 @@ public:
         }
         
         return dir; // std::nullopt when no input is active
+    }
+    
+    static int countConnectedControllers() {
+        int count = 1;  // Always count keyboard as player 0
+        for (int i = 1; i < MAX_PLAYERS; ++i) {
+            if (sf::Joystick::isConnected(i)) {
+                count++;
+            }
+        }
+        return count;
     }
 };
 
@@ -671,6 +695,11 @@ int main(int argc, char* argv[]) {
     std::array<Direction, MAX_PLAYERS> lastInputs{};
     lastInputs.fill(Direction::Right);
     sf::Clock inputClock;
+    
+    // Send connect message with controller count
+    int controllerCount = InputAdapter::countConnectedControllers();
+    std::cout << "Sending connect message: " << controllerCount << " controller(s)" << std::endl;
+    client.sendConnect(controllerCount);
     
     // Load font for lobby UI
     sf::Font font;

@@ -9,25 +9,53 @@ void GameLogic::init(int playerCount) {
     m_food.clear();
     m_gameActive = false; // Start in lobby mode, not active
     m_state = Protocol::GameStateType::LOBBY;
+    
+    // Clamp player count to valid range (1-4)
+    playerCount = std::max(1, std::min(playerCount, MAX_PLAYERS));
     m_playerCount = playerCount;
     
-    // Starting positions for up to 4 players
-    static std::array<Protocol::Vec2, 4> starts{
-        Protocol::Vec2{10, 10}, 
-        Protocol::Vec2{50, 10}, 
-        Protocol::Vec2{10, 30}, 
-        Protocol::Vec2{50, 30}
-    };
+    // Define starting positions based on player count
+    // Grid is 60x40
+    std::array<Protocol::Vec2, 4> starts;
+    std::array<Protocol::Direction, 4> dirs;
     
-    static std::array<Protocol::Direction, 4> dirs{
-        Protocol::Direction::Right, 
-        Protocol::Direction::Left, 
-        Protocol::Direction::Right, 
-        Protocol::Direction::Left
-    };
+    switch (playerCount) {
+        case 1:
+            // Single player at center
+            starts[0] = Protocol::Vec2{30, 20};
+            dirs[0] = Protocol::Direction::Right;
+            break;
+        case 2:
+            // Two players at opposite corners
+            starts[0] = Protocol::Vec2{10, 10};
+            dirs[0] = Protocol::Direction::Right;
+            starts[1] = Protocol::Vec2{50, 30};
+            dirs[1] = Protocol::Direction::Left;
+            break;
+        case 3:
+            // Three players in triangle formation
+            starts[0] = Protocol::Vec2{10, 10};
+            dirs[0] = Protocol::Direction::Right;
+            starts[1] = Protocol::Vec2{50, 10};
+            dirs[1] = Protocol::Direction::Left;
+            starts[2] = Protocol::Vec2{30, 30};
+            dirs[2] = Protocol::Direction::Up;
+            break;
+        case 4:
+        default:
+            // Four players at corners
+            starts[0] = Protocol::Vec2{10, 10};
+            dirs[0] = Protocol::Direction::Right;
+            starts[1] = Protocol::Vec2{50, 10};
+            dirs[1] = Protocol::Direction::Left;
+            starts[2] = Protocol::Vec2{10, 30};
+            dirs[2] = Protocol::Direction::Right;
+            starts[3] = Protocol::Vec2{50, 30};
+            dirs[3] = Protocol::Direction::Left;
+            break;
+    }
     
-    playerCount = std::min(playerCount, MAX_PLAYERS);
-    
+    // Create players
     for (int i = 0; i < playerCount; ++i) {
         InternalPlayerState p;
         p.id = i;
