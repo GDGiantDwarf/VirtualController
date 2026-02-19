@@ -111,6 +111,11 @@ Comprehensive technical documentation is available in the `docs/` directory:
 - **[Build System](docs/07_BUILD_SYSTEM.md)** - CMake configuration and compilation
 - **[Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md)** - Testing scenarios and troubleshooting
 
+Additional resources:
+
+- **[Design Brief](docs/Design%20Brief.pdf)** - High-level design decisions and rationale
+- **[Testing Policy](docs/Testing%20Policy.pdf)** - Testing strategy, frameworks, and test types
+
 ## Development
 
 ### Adding Games

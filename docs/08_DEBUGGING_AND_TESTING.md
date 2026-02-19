@@ -216,115 +216,6 @@ For local testing, clients automatically connect to localhost:9000. To use proxy
    std::cout << "Resetting " << players.size() << " players" << std::endl;
    ```
 
-## Testing Scenarios
-
-### Single Player Local
-
-**Setup**:
-1. Start GameServer
-2. Start GameLibraryLauncher
-3. Connect 1 controller to PC
-4. Click on Snake game
-
-**Expected**:
-- One snake appears
-- Controlled by connected controller or keyboard
-- Game runs smoothly at ~60 FPS
-
-**Validation Checklist**:
-- [ ] Snake responds to input immediately
-- [ ] Game loop stable (no stuttering)
-- [ ] End screen appears when snake dies
-- [ ] BACK TO START button works
-
-### Local Multiplayer (2 Controllers)
-
-**Setup**:
-1. Start GameServer
-2. Start GameLibraryLauncher
-3. Connect 2 joysticks to same PC
-4. Click on Snake game
-
-**Expected**:
-- Lobby shows "2 players connected"
-- Two snakes appear in opposite corners
-- Can control both snakes simultaneously
-- Colors are different per player
-
-**Validation Checklist**:
-- [ ] Correct player count displayed
-- [ ] Both snakes visible and responsive
-- [ ] No overlap of starting positions
-- [ ] Different colors per snake
-- [ ] End game shows both scores
-
-### Network Multiplayer (2 PCs)
-
-**Setup**:
-1. Start GameServer on PC-A (local network IP: 192.168.1.5)
-2. Start GameLibraryLauncher on PC-A
-3. Start GameLibraryLauncher on PC-B
-4. On PC-B, manually connect to 192.168.1.5:9000
-5. Both click Snake game
-
-**Expected**:
-- Four snakes appear (2 per PC)
-- All 4 controlled independently
-- Collisions work across network
-- Synchronization is smooth (< 1s latency)
-
-**Validation Checklist**:
-- [ ] Network connection established
-- [ ] All 4 snakes visible
-- [ ] Correct player count on both launchers
-- [ ] Different colors per player
-- [ ] No duplicate player indices
-- [ ] End game synced across network
-
-### Edge Cases
-
-#### Rapid Start/Stop
-
-**Test**: Click START, then immediately BACK TO START
-
-**Expected**:
-- Game ends cleanly
-- No crash or hang
-
-**Validation**:
-- [ ] Returns to lobby
-- [ ] State is clean for next game
-
-#### Disconnect During Game
-
-**Test**: Unplug network cable or quit client mid-game
-
-**Expected**:
-- Server continues (doesn't crash)
-- Remaining players complete game normally
-- Disconnected player's snakes frozen on screen temporarily
-
-**Validation**:
-- [ ] Other players can reach end screen
-- [ ] Server logs connection loss gracefully
-
-#### Multiple Game Launches
-
-**Test**: 
-1. Play game and end it
-2. Play again immediately
-3. Repeat 3+ times
-
-**Expected**:
-- All games work identically
-- No memory leaks (check memory usage)
-- No resources exhausted
-
-**Validation**:
-- [ ] Each game plays to completion
-- [ ] Snake always resets to same starting position
-- [ ] No slowdown across multiple games
-
 ## Profiling and Performance
 
 ### Frame Rate Monitoring
@@ -377,175 +268,202 @@ Monitor with Visual Studio or Task Manager:
 - Memory should not increase
 - Indicates no memory leaks
 
-## Stress Testing
+## Running Automated Tests
 
-### Maximum Players
+VirtualController includes a comprehensive test suite covering protocol validation, networking, and game logic.
 
-**Test**: Connect many players sequentially
+### Quick Test (5 minutes)
 
-```bash
-# Run game client multiple times with different IDs
-for i in 1 2 3 4 5; do
-    start snake.exe  # Runs in background
-done
-```
-
-**Expected**:
-- Supports at least 4 players per PC
-- Server broadcasts to all without latency increase
-- No crash with 8+ total players
-
-**Validation**:
-- [ ] All 8 snakes visible and responding
-- [ ] Game complete time reasonable (< 2 minutes)
-
-### Message Flood
-
-**Test**: Send many input messages rapidly
-
-```cpp
-// Modify InputAdapter to send every tick instead of on change
-while (running && !window.isDone()) {
-    client.sendInput(player, direction);  // Even if unchanged
-}
-```
-
-**Expected**:
-- Server handles gracefully
-- Network doesn't saturate
-- No crashes
-
-**Validation**:
-- [ ] Game remains playable
-- [ ] Server message processing keeps up
-
-### Long Game Duration
-
-**Test**: Run game for extended period (avoid deaths)
-
-**Expected**:
-- FPS remains constant
-- Memory stable
-- No network timeouts
-
-**Validation**:
-- [ ] Can play uninterrupted for 30+ minutes
-- [ ] No gradual slowdown
-- [ ] Clean shutdown
-
-## Common Test Failures
-
-### Flaky Tests (Intermittent Failures)
-
-**Network timeouts**:
-- Check firewall settings
-- Verify network stability
-- Test on different network
-
-**Input lag on multiplayer**:
-- Check server running on same network segment
-- Measure actual latency with debug_proxy.py
-- Reduce visual effects if CPU bound
-
-**Random crashes**:
-- Run under debugger to get stack trace
-- Check for uncaught exceptions
-- Validate all pointer dereferences
-
-### Build Verification
-
-Before testing, verify build:
+Run protocol validation tests only:
 
 ```bash
-# Check all executables exist
-ls build/bin/Release/
-# Expected output:
-#   GameLibraryLauncher.exe
-#   GameServer.exe
-#   snake.exe
-#   *.dll files
-
-# Verify icons present
-ls build/bin/Release/*.ico
-# Expected: snake.ico
+cd d:\GitHub\VirtualController
+python tests\test_protocol.py -v
 ```
 
-## Debugging with Visual Studio
-
-### Attach Debugger to Running Game
-
-1. Start game from command line
-2. In Visual Studio: Debug → Attach to Process
-3. Select `snake.exe`
-4. Set breakpoints in code
-5. Interact with game to hit breakpoints
-
-### Breakpoint Strategy
-
-Set breakpoints at:
-- Network message handlers (examine JSON)
-- Game state updates (verify scores)
-- Input processing (check direction values)
-- Rendering (profile performance)
-
-### Watch Variables
-
-Monitor during execution:
-- `state.players[i].x`, `state.players[i].y` (position)
-- `state.food.x`, `state.food.y` (food position)
-- `inputAdapter.directions[]` (controller inputs)
-- `client.isConnected` (network status)
-
-## Logging Best Practices
-
-### Structured Logging
-
-Use consistent format:
-
-```cpp
-std::cout << "[GAME] Snake 0 ate food at (25, 30), score now 10" << std::endl;
-std::cout << "[NET] Received STATE_UPDATE from server" << std::endl;
-std::cout << "[ERROR] Connection lost to server" << std::endl;
+**Expected Output**:
+```
+Ran 36 tests in 0.029s
+OK
 ```
 
-Categories: `[GAME]`, `[NET]`, `[RENDER]`, `[INPUT]`, `[ERROR]`
+This verifies all JSON protocol messages are properly formatted and validated.
 
-### JSON Pretty Print
+### Network Tests (Requires Active Server)
 
-Make debug_proxy output readable:
+Test client-server communication:
 
-```python
-# In debug_proxy.py
-import json
-print(json.dumps(message, indent=2))
+```bash
+# Terminal 1: Start GameServer (listens on port 8765 by default)
+.\build\bin\Release\GameServer.exe
+
+# Terminal 2: Run networking tests
+python tests\test_networking.py -v
 ```
 
-### Performance Markers
-
-Add timing:
-
-```cpp
-auto start = std::chrono::high_resolution_clock::now();
-// ... code to measure ...
-auto end = std::chrono::high_resolution_clock::now();
-auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-std::cout << "[PERF] Operation took " << duration.count() << " ms" << std::endl;
+**Note**: GameServer uses port **8765** by default. To use a different port:
+```bash
+.\build\bin\Release\GameServer.exe 9000    # Use port 9000 instead
 ```
 
-## Continuous Testing Checklist
+**Tests Performed**:
+- [ ] Server accepts connections on port 8765
+- [ ] CONNECT message handling
+- [ ] INPUT message routing
+- [ ] STATE_UPDATE broadcasts
+- [ ] Multiple simultaneous clients
+- [ ] Connection stability
+- [ ] Error handling (invalid JSON, oversized messages)
 
-Before each commit, verify:
+**Expected Results**:
+- Connection tests: PASS
+- Protocol exchange: PASS
+- Multiple clients: PASS
+- Negative cases: PASS (graceful rejection)
 
-- [ ] All components compile without warnings
-- [ ] Local single-player game completes
-- [ ] Local multiplayer (2 controllers) completes
-- [ ] Network multiplayer connects and plays
-- [ ] End screen shows correct scores
-- [ ] Back to lobby works
-- [ ] Repeated games (3+) all work
-- [ ] FPS stable at 60
-- [ ] Memory doesn't leak
-- [ ] No console errors in debug_proxy
+### Functional Testing (Manual)
+
+Test end-to-end user scenarios:
+
+#### Single-Player Test
+
+1. Start GameServer
+2. Start GameLibraryLauncher
+3. Click Snake game
+4. Verify lobby screen
+5. Click START GAME
+6. Play until game over
+7. Verify final score displayed
+
+**Validation**:
+- [ ] Snake renders correctly
+- [ ] Keyboard controls work (Arrow keys)
+- [ ] Food spawns randomly
+- [ ] Collisions detected
+- [ ] Score calculated correctly
+- [ ] End screen shows score
+
+#### Multiplayer Test (2 Controllers)
+
+1. Connect keyboard and 1 joystick
+2. Start GameServer
+3. Start GameLibraryLauncher
+4. Click Snake game
+5. Verify "2 players connected"
+6. Click START GAME
+7. Use keyboard for Player 0, joystick for Player 1
+8. Play to completion
+
+**Validation**:
+- [ ] 2 snakes render with different colors
+- [ ] Each snake responds to correct input device
+- [ ] Different starting positions
+- [ ] Both snakes interact correctly (collisions)
+- [ ] Final scores reflect both players
+- [ ] Back to Start works
+
+#### Network Multiplayer Test (2 PCs)
+
+1. Configure network (same subnet required)
+2. PC-A: Start GameServer (listens on 8765 by default)
+   ```bash
+   .\build\bin\Release\GameServer.exe
+   ```
+3. PC-A: Start GameLibraryLauncher (server: 127.0.0.1:8765)
+4. PC-B: Start GameLibraryLauncher (server: PC-A IP:8765)
+5. Both click Snake game
+6. Verify player counts sync (should show 2 on each screen)
+7. Both click START GAME
+8. Play to completion
+
+**Validation**:
+- [ ] Network connection stable
+- [ ] Player counts synchronized
+- [ ] Game state synced across network
+- [ ] Input latency < 200ms local
+- [ ] Final scores match on both PCs
+
+### Test Suite Organization
+
+**File**: `tests/`
+
+```
+tests/
+├── test_protocol.py      # 36 unit tests for JSON validation
+├── test_networking.py    # Connectivity and protocol exchange tests
+└── test_e2e_scenarios.md # Manual E2E test procedures (this document)
+```
+
+### Test Results Documentation
+
+After running tests, document results:
+
+```markdown
+# Test Results - [DATE]
+
+## Protocol Tests
+- Status: PASS (36/36)
+- Duration: 0.029s
+- Coverage: CONNECT, INPUT, STATE_UPDATE, START_GAME, RESET_GAME
+
+## Networking Tests (requires server)
+- Status: PASS (x tests)
+- Server: ✓ Running
+- Connection: ✓ Accepted
+- Message Exchange: ✓ Working
+- Multiple Clients: ✓ Supported
+
+## Functional Tests
+- Single-Player: ✓ PASS
+- Local Multiplayer: ✓ PASS
+- Network Multiplayer: ✓ PASS
+- Error Scenarios: ✓ PASS
+
+## Known Issues
+- None
+
+## Test Environment
+- OS: Windows 10/11
+- Python: 3.10+
+- Compiler: MSVC 2022
+- Build Config: Release
+```
+
+### Automated Test Execution
+
+For CI/CD integration:
+
+```bash
+# 1. Build project
+cmake --build build --config Release
+
+# 2. Run unit tests
+python tests/test_protocol.py > protocol_results.txt
+
+# 3. Start server (for integration tests)
+Start-Process -FilePath ".\build\bin\Release\GameServer.exe" -WindowStyle Hidden
+
+# 4. Run networking tests
+Start-Sleep -Seconds 2
+python tests/test_networking.py > networking_results.txt
+
+# 5. Kill server
+Stop-Process -Name GameServer -Force
+
+# 6. Check results
+echo "Protocol tests:" && findstr "OK\|FAILED" protocol_results.txt
+echo "Networking tests:" && findstr "OK\|FAILED" networking_results.txt
+```
+
+### Troubleshooting Test Failures
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `ModuleNotFoundError: No module named 'json'` | Python installation issue | Use `python -m pip install --upgrade setuptools` |
+| Server not accepting connections | Wrong IP/port (default: 8765) | Verify GameServer running: `netstat -an \| findstr 8765` or `netstat -ano \| findstr GameServer` |
+| Protocol tests fail | JSON validation regression | Check recent changes to protocol messages in GameServer.cpp |
+| Network test timeout | Server slow to respond or wrong port | Verify port 8765 is listening. Start server: `.\build\bin\Release\GameServer.exe` |
+| Memory warnings in output | Not related to test failures | Safe to ignore, Python cleanup warnings |
 
 ## Next Steps
 
