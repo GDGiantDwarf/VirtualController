@@ -267,6 +267,10 @@ void GameServer::handleClientMessages() {
                 m_gameLogic.startGame();
             }
         }
+        else if (msg.type == Protocol::MessageType::RESET_GAME) {
+            std::cout << "Game reset by player " << conn->getPlayerId() << std::endl;
+            m_gameLogic.resetGame();
+        }
     }
 }
 
@@ -288,6 +292,7 @@ std::string GameServer::serializeGameState(const Protocol::GameState& state, int
     std::ostringstream oss;
     oss << "{\"type\":\"state\",\"active\":" << (state.gameActive ? "true" : "false");
     oss << ",\"connected\":" << connectedCount;
+    oss << ",\"state\":" << static_cast<int>(state.state);
     
     // Serialize players
     oss << ",\"players\":[";
@@ -350,6 +355,12 @@ Protocol::Message GameServer::parseMessage(const std::string& data) {
     size_t startPos = data.find("\"type\":\"start\"");
     if (startPos != npos) {
         msg.type = Protocol::MessageType::START_GAME;
+        return msg;
+    }
+    
+    size_t resetPos = data.find("\"type\":\"reset\"");
+    if (resetPos != npos) {
+        msg.type = Protocol::MessageType::RESET_GAME;
         return msg;
     }
     

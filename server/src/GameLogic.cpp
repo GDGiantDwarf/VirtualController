@@ -8,6 +8,7 @@ void GameLogic::init(int playerCount) {
     m_players.clear();
     m_food.clear();
     m_gameActive = false; // Start in lobby mode, not active
+    m_state = Protocol::GameStateType::LOBBY;
     m_playerCount = playerCount;
     
     // Starting positions for up to 4 players
@@ -75,12 +76,14 @@ void GameLogic::tick() {
     // Check if game should end (all players dead)
     if (getAliveCount() == 0) {
         m_gameActive = false;
+        m_state = Protocol::GameStateType::ENDED;
     }
 }
 
 Protocol::GameState GameLogic::getState() const {
     Protocol::GameState state;
     state.gameActive = m_gameActive;
+    state.state = m_state;
     state.food = m_food;
     
     for (const auto& p : m_players) {
@@ -114,6 +117,12 @@ int GameLogic::getPlayerCount() const {
 
 void GameLogic::startGame() {
     m_gameActive = true;
+    m_state = Protocol::GameStateType::ACTIVE;
+}
+
+void GameLogic::resetGame() {
+    // Re-initialize game back to lobby
+    init(m_playerCount);
 }
 
 void GameLogic::spawnFood() {

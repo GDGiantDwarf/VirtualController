@@ -58,6 +58,10 @@ public:
      */
     void startGame();
     
+    /**
+     * @brief Reset game back to lobby state
+     */
+    void resetGame();
 private:
     struct InternalPlayerState {
         int id{};
@@ -71,6 +75,7 @@ private:
     std::vector<Protocol::Vec2> m_food;
     bool m_gameActive{false};
     int m_playerCount{0};
+    Protocol::GameStateType m_state{Protocol::GameStateType::LOBBY};
     std::mt19937 m_rng;
     
     void spawnFood();

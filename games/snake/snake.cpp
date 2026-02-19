@@ -52,6 +52,7 @@ struct GameState {
     std::vector<Vec2> food;
     bool gameActive{false};
     int connectedPlayers{0};
+    int state{0}; // 0=LOBBY, 1=ACTIVE, 2=ENDED
 };
 
 // ============================================================
@@ -193,6 +194,20 @@ public:
         return result > 0;
     }
     
+    bool sendResetGame() {
+        if (!m_connected) return false;
+        
+        std::string msg = "{\"type\":\"reset\"}\n";
+        
+        #ifdef _WIN32
+            int result = ::send(m_socket, msg.c_str(), static_cast<int>(msg.size()), 0);
+        #else
+            ssize_t result = ::send(m_socket, msg.c_str(), msg.size(), 0);
+        #endif
+        
+        return result > 0;
+    }
+    
     GameState receiveState() {
         GameState state;
         if (!m_connected) return state;
@@ -252,6 +267,13 @@ private:
         if (connectedPos != std::string::npos) {
             connectedPos += 12; // Skip "connected":
             state.connectedPlayers = std::stoi(json.substr(connectedPos));
+        }
+        
+        // Parse game state (0=LOBBY, 1=ACTIVE, 2=ENDED)
+        size_t statePos = json.find("\"state\":");
+        if (statePos != std::string::npos) {
+            statePos += 8; // Skip "state":
+            state.state = std::stoi(json.substr(statePos, 1));
         }
         
         // Parse players
@@ -515,6 +537,73 @@ public:
         
         window.display();
     }
+    
+    static void drawEndScreen(sf::RenderWindow& window, const GameState& state, const sf::Font& font, const sf::Vector2f& mousePos) {
+        window.clear(sf::Color(30, 30, 30));
+        
+        // Title
+        sf::Text title(font);
+        title.setString("GAME OVER");
+        title.setCharacterSize(60);
+        title.setFillColor(sf::Color::Red);
+        title.setPosition({320.f, 50.f});
+        window.draw(title);
+        
+        // Final scores
+        sf::Text scoresLabel(font);
+        scoresLabel.setString("Final Scores:");
+        scoresLabel.setCharacterSize(28);
+        scoresLabel.setFillColor(sf::Color::White);
+        scoresLabel.setPosition({340.f, 150.f});
+        window.draw(scoresLabel);
+        
+        // Display each player's score
+        std::array<sf::Color, 4> colors{
+            sf::Color::Green,
+            sf::Color::Blue,
+            sf::Color(255, 165, 0), // Orange
+            sf::Color::Yellow
+        };
+        
+        for (size_t i = 0; i < state.players.size(); ++i) {
+            const auto& p = state.players[i];
+            sf::Text playerScore(font);
+            std::ostringstream oss;
+            oss << "Player " << (p.id + 1) << ": " << p.score << " points";
+            playerScore.setString(oss.str());
+            playerScore.setCharacterSize(24);
+            playerScore.setFillColor(colors[p.id % 4]);
+            playerScore.setPosition({340.f, 210.f + (i * 40.f)});
+            window.draw(playerScore);
+        }
+        
+        // Back to Start button
+        sf::RectangleShape button(sf::Vector2f(300.f, 80.f));
+        button.setPosition({350.f, 480.f});
+        
+        // Check if mouse is hovering
+        bool isHovered = mousePos.x >= 350.f && mousePos.x <= 650.f &&
+                       mousePos.y >= 480.f && mousePos.y <= 560.f;
+        
+        if (isHovered) {
+            button.setFillColor(sf::Color(200, 0, 0));
+        } else {
+            button.setFillColor(sf::Color(150, 0, 0));
+        }
+        
+        button.setOutlineColor(sf::Color::White);
+        button.setOutlineThickness(3.f);
+        window.draw(button);
+        
+        sf::Text buttonText(font);
+        buttonText.setString("BACK TO START");
+        buttonText.setCharacterSize(32);
+        buttonText.setFillColor(sf::Color::White);
+        buttonText.setPosition({375.f, 500.f});
+        window.draw(buttonText);
+        
+        window.display();
+    }
 };
 
 // ============================================================
@@ -602,13 +691,20 @@ int main(int argc, char* argv[]) {
                                        static_cast<float>(mouseMoved->position.y));
             }
             
-            if (e->is<sf::Event::MouseButtonPressed>() && !currentState.gameActive) {
-                // Check if start button was clicked
-                if (mousePos.x >= 350.f && mousePos.x <= 650.f &&
-                    mousePos.y >= 400.f && mousePos.y <= 480.f &&
-                    currentState.connectedPlayers > 0) {
-                    client.sendStartGame();
-                    startButtonClicked = true;
+            if (e->is<sf::Event::MouseButtonPressed>()) {
+                if (currentState.state == 2) {  // ENDED - check for back to start button
+                    if (mousePos.x >= 350.f && mousePos.x <= 650.f &&
+                        mousePos.y >= 480.f && mousePos.y <= 560.f) {
+                        client.sendResetGame();
+                    }
+                } else if (!currentState.gameActive) {  // LOBBY - check for start button
+                    // Check if start button was clicked
+                    if (mousePos.x >= 350.f && mousePos.x <= 650.f &&
+                        mousePos.y >= 400.f && mousePos.y <= 480.f &&
+                        currentState.connectedPlayers > 0) {
+                        client.sendStartGame();
+                        startButtonClicked = true;
+                    }
                 }
             }
         }
@@ -680,8 +776,15 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        // Render lobby or game
-        if (!currentState.gameActive) {
+        // Render lobby, game, or end screen
+        if (currentState.state == 2) {  // ENDED
+            if (fontLoaded) {
+                Renderer::drawEndScreen(window, currentState, font, mousePos);
+            } else {
+                window.clear(sf::Color(30, 30, 30));
+                window.display();
+            }
+        } else if (!currentState.gameActive || currentState.state == 0) {  // LOBBY
             if (fontLoaded) {
                 Renderer::drawLobby(window, currentState, font, mousePos, startButtonClicked);
             } else {
@@ -689,7 +792,7 @@ int main(int argc, char* argv[]) {
                 window.clear(sf::Color(30, 30, 30));
                 window.display();
             }
-        } else {
+        } else {  // ACTIVE
             Renderer::drawState(window, currentState);
         }
     }
