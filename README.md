@@ -30,6 +30,13 @@ build.bat
 
 All executables are output to: `build/bin/Release/`
 
+## User Guides
+
+New to VirtualController? Start here:
+
+- **[General User Guide (PDF)](General%20User%20Guide.pdf)** - How to use the system with any game and any number of players
+- **[Snake Game User Guide (PDF)](Snake%20Game%20User%20Guide.pdf)** - Specific guide to playing the Snake game
+
 ## Running the Application
 
 ```powershell
