@@ -28,13 +28,13 @@ jobs:
     - name: Test Summary
       if: always()
       run: |
-        Write-Host "=================================================="
-        Write-Host "Protocol Tests Complete"
-        Write-Host "=================================================="
-        Write-Host ""
-        Write-Host "✓ Protocol Tests: 36/36 passed"
-        Write-Host ""
-        Write-Host "Note: Networking tests require built binaries."
-        Write-Host "Run locally: python tests\test_networking.py"
-        Write-Host "=================================================="
+        Write-Host '=========================================='
+        Write-Host 'Protocol Tests Complete'
+        Write-Host '=========================================='
+        Write-Host ''
+        Write-Host '✓ Protocol Tests: 36/36 passed'
+        Write-Host ''
+        Write-Host 'Note: Networking tests require built binaries.'
+        Write-Host 'Run locally: python tests\test_networking.py'
+        Write-Host '=========================================='
       shell: powershell
