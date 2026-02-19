@@ -17,6 +17,7 @@ enum class MessageType {
     INPUT,          // Client sends input command
     STATE_UPDATE,   // Server broadcasts game state
     START_GAME,     // Start a new game
+    RESET_GAME,     // Reset game to lobby
     MSG_ERROR       // Error message (renamed to avoid Windows ERROR macro)
 };
 
@@ -26,6 +27,13 @@ enum class Direction {
     Down = 1,
     Left = 2,
     Right = 3
+};
+
+// Game state enumeration
+enum class GameStateType {
+    LOBBY,   // Waiting for players, before start
+    ACTIVE,  // Game is running
+    ENDED    // All players dead, waiting for reset
 };
 
 // Vector2 position
@@ -48,6 +56,7 @@ struct GameState {
     std::vector<PlayerState> players;
     std::vector<Vec2> food;
     bool gameActive{false};
+    GameStateType state{GameStateType::LOBBY};
 };
 
 // Input command structure
@@ -63,6 +72,7 @@ struct Message {
     Direction direction{Direction::Right};
     GameState state;
     std::string error;
+    int controllerCount{0};  // Number of controllers on the client PC
 };
 
 } // namespace Protocol

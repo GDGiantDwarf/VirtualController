@@ -6,6 +6,11 @@ bin/
 !mobile_controller/lib/
 *.user
 
+# Game-specific build directories (use unified root build only)
+games/*/build/
+server/build/
+launcher/build/
+
 # CMake
 CMakeCache.txt
 CMakeFiles/

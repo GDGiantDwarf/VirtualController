@@ -15,6 +15,7 @@
     #include <sys/socket.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
+    #include <netdb.h>
     #include <unistd.h>
 #endif
 
@@ -50,6 +51,8 @@ struct GameState {
     std::vector<PlayerState> players;
     std::vector<Vec2> food;
     bool gameActive{false};
+    int connectedPlayers{0};
+    int state{0}; // 0=LOBBY, 1=ACTIVE, 2=ENDED
 };
 
 // ============================================================
@@ -78,36 +81,59 @@ public:
                 std::cerr << "WSAStartup failed" << std::endl;
                 return false;
             }
-            
-            m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        #endif
+        
+        // Use getaddrinfo for DNS resolution (supports both hostnames and IPs)
+        addrinfo hints{};
+        hints.ai_family = AF_INET;      // IPv4
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+        
+        addrinfo* result = nullptr;
+        std::string portStr = std::to_string(m_port);
+        
+        int ret = getaddrinfo(m_host.c_str(), portStr.c_str(), &hints, &result);
+        if (ret != 0) {
+            #ifdef _WIN32
+                std::cerr << "getaddrinfo failed for " << m_host << ": " << gai_strerror(ret) << std::endl;
+                WSACleanup();
+            #else
+                std::cerr << "getaddrinfo failed for " << m_host << ": " << gai_strerror(ret) << std::endl;
+            #endif
+            return false;
+        }
+        
+        // Create socket
+        #ifdef _WIN32
+            m_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
             if (m_socket == INVALID_SOCKET) {
                 std::cerr << "Socket creation failed" << std::endl;
+                freeaddrinfo(result);
                 WSACleanup();
                 return false;
             }
         #else
-            m_socket = socket(AF_INET, SOCK_STREAM, 0);
+            m_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
             if (m_socket < 0) {
                 std::cerr << "Socket creation failed" << std::endl;
+                freeaddrinfo(result);
                 return false;
             }
         #endif
         
-        sockaddr_in serverAddr;
-        serverAddr.sin_family = AF_INET;
-        serverAddr.sin_port = htons(m_port);
-        
-        #ifdef _WIN32
-            inet_pton(AF_INET, m_host.c_str(), &serverAddr.sin_addr);
-        #else
-            inet_aton(m_host.c_str(), &serverAddr.sin_addr);
-        #endif
-        
-        if (::connect(m_socket, (sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-            std::cerr << "Connection to server failed" << std::endl;
+        // Connect using resolved address
+        if (::connect(m_socket, result->ai_addr, result->ai_addrlen) < 0) {
+            #ifdef _WIN32
+                std::cerr << "Connection to " << m_host << ":" << m_port << " failed (error: " << WSAGetLastError() << ")" << std::endl;
+            #else
+                std::cerr << "Connection to " << m_host << ":" << m_port << " failed" << std::endl;
+            #endif
+            freeaddrinfo(result);
             disconnect();
             return false;
         }
+        
+        freeaddrinfo(result);
         
         // Set non-blocking mode
         #ifdef _WIN32
@@ -144,6 +170,48 @@ public:
         oss << "{\"type\":\"input\",\"playerId\":" << playerId
             << ",\"direction\":" << static_cast<int>(dir) << "}\n";
         std::string msg = oss.str();
+        
+        #ifdef _WIN32
+            int result = ::send(m_socket, msg.c_str(), static_cast<int>(msg.size()), 0);
+        #else
+            ssize_t result = ::send(m_socket, msg.c_str(), msg.size(), 0);
+        #endif
+        
+        return result > 0;
+    }
+    
+    bool sendStartGame() {
+        if (!m_connected) return false;
+        
+        std::string msg = "{\"type\":\"start\"}\n";
+        
+        #ifdef _WIN32
+            int result = ::send(m_socket, msg.c_str(), static_cast<int>(msg.size()), 0);
+        #else
+            ssize_t result = ::send(m_socket, msg.c_str(), msg.size(), 0);
+        #endif
+        
+        return result > 0;
+    }
+    
+    bool sendResetGame() {
+        if (!m_connected) return false;
+        
+        std::string msg = "{\"type\":\"reset\"}\n";
+        
+        #ifdef _WIN32
+            int result = ::send(m_socket, msg.c_str(), static_cast<int>(msg.size()), 0);
+        #else
+            ssize_t result = ::send(m_socket, msg.c_str(), msg.size(), 0);
+        #endif
+        
+        return result > 0;
+    }
+    
+    bool sendConnect(int controllerCount) {
+        if (!m_connected) return false;
+        
+        std::string msg = "{\"type\":\"connect\",\"controllers\":" + std::to_string(controllerCount) + "}\n";
         
         #ifdef _WIN32
             int result = ::send(m_socket, msg.c_str(), static_cast<int>(msg.size()), 0);
@@ -196,7 +264,30 @@ private:
         // Simple JSON parser - in production, use a proper JSON library
         size_t activePos = json.find("\"active\":");
         if (activePos != std::string::npos) {
-            state.gameActive = json.find("true", activePos) != std::string::npos;
+            activePos += 9; // Skip "active":
+            // Check specifically for true/false right after "active":
+            size_t truePos = json.find("true", activePos);
+            size_t falsePos = json.find("false", activePos);
+            size_t nextCommaPos = json.find(",", activePos);
+            
+            // Only consider true/false if it appears before the next comma
+            state.gameActive = (truePos != std::string::npos && 
+                               truePos < nextCommaPos &&
+                               (falsePos == std::string::npos || truePos < falsePos));
+        }
+        
+        // Parse connected player count
+        size_t connectedPos = json.find("\"connected\":");
+        if (connectedPos != std::string::npos) {
+            connectedPos += 12; // Skip "connected":
+            state.connectedPlayers = std::stoi(json.substr(connectedPos));
+        }
+        
+        // Parse game state (0=LOBBY, 1=ACTIVE, 2=ENDED)
+        size_t statePos = json.find("\"state\":");
+        if (statePos != std::string::npos) {
+            statePos += 8; // Skip "state":
+            state.state = std::stoi(json.substr(statePos, 1));
         }
         
         // Parse players
@@ -232,7 +323,10 @@ private:
             // Parse alive
             size_t alivePos = json.find("\"alive\":", idPos);
             if (alivePos != std::string::npos) {
-                p.alive = json.find("true", alivePos) < json.find("false", alivePos);
+                alivePos += 8; // Skip "alive":
+                size_t truePos = json.find("true", alivePos);
+                size_t nextComma = json.find(",", alivePos);
+                p.alive = (truePos != std::string::npos && truePos < nextComma);
             }
             
             // Parse direction
@@ -342,6 +436,16 @@ public:
         
         return dir; // std::nullopt when no input is active
     }
+    
+    static int countConnectedControllers() {
+        int count = 1;  // Always count keyboard as player 0
+        for (int i = 1; i < MAX_PLAYERS; ++i) {
+            if (sf::Joystick::isConnected(i)) {
+                count++;
+            }
+        }
+        return count;
+    }
 };
 
 // ============================================================
@@ -385,6 +489,142 @@ public:
                 window.draw(cell);
             }
         }
+        
+        window.display();
+    }
+    
+    static void drawLobby(sf::RenderWindow& window, const GameState& state, const sf::Font& font, const sf::Vector2f& mousePos, bool mousePressed) {
+        window.clear(sf::Color(30, 30, 30));
+        
+        // Title
+        sf::Text title(font);
+        title.setString("Multiplayer Snake");
+        title.setCharacterSize(48);
+        title.setFillColor(sf::Color::White);
+        title.setPosition({220.f, 100.f});
+        window.draw(title);
+        
+        // Connected players count
+        sf::Text playerCount(font);
+        std::ostringstream oss;
+        oss << "Players Connected: " << state.connectedPlayers << " / " << MAX_PLAYERS;
+        playerCount.setString(oss.str());
+        playerCount.setCharacterSize(32);
+        playerCount.setFillColor(sf::Color(200, 200, 200));
+        playerCount.setPosition({280.f, 220.f});
+        window.draw(playerCount);
+        
+        // Waiting message
+        if (state.connectedPlayers == 0) {
+            sf::Text waiting(font);
+            waiting.setString("Waiting for players...");
+            waiting.setCharacterSize(24);
+            waiting.setFillColor(sf::Color(150, 150, 150));
+            waiting.setPosition({330.f, 300.f});
+            window.draw(waiting);
+        }
+        
+        // Start button (only if at least one player)
+        if (state.connectedPlayers > 0) {
+            sf::RectangleShape button(sf::Vector2f(300.f, 80.f));
+            button.setPosition({350.f, 400.f});
+            
+            // Check if mouse is hovering
+            bool isHovered = mousePos.x >= 350.f && mousePos.x <= 650.f &&
+                           mousePos.y >= 400.f && mousePos.y <= 480.f;
+            
+            if (isHovered) {
+                button.setFillColor(sf::Color(0, 180, 0));
+            } else {
+                button.setFillColor(sf::Color(0, 150, 0));
+            }
+            
+            button.setOutlineColor(sf::Color::White);
+            button.setOutlineThickness(3.f);
+            window.draw(button);
+            
+            sf::Text buttonText(font);
+            buttonText.setString("START GAME");
+            buttonText.setCharacterSize(36);
+            buttonText.setFillColor(sf::Color::White);
+            buttonText.setPosition({400.f, 415.f});
+            window.draw(buttonText);
+        }
+        
+        // Instructions
+        sf::Text instructions(font);
+        instructions.setString("Click 'Start Game' to begin");
+        instructions.setCharacterSize(20);
+        instructions.setFillColor(sf::Color(120, 120, 120));
+        instructions.setPosition({320.f, 550.f});
+        window.draw(instructions);
+        
+        window.display();
+    }
+    
+    static void drawEndScreen(sf::RenderWindow& window, const GameState& state, const sf::Font& font, const sf::Vector2f& mousePos) {
+        window.clear(sf::Color(30, 30, 30));
+        
+        // Title
+        sf::Text title(font);
+        title.setString("GAME OVER");
+        title.setCharacterSize(60);
+        title.setFillColor(sf::Color::Red);
+        title.setPosition({320.f, 50.f});
+        window.draw(title);
+        
+        // Final scores
+        sf::Text scoresLabel(font);
+        scoresLabel.setString("Final Scores:");
+        scoresLabel.setCharacterSize(28);
+        scoresLabel.setFillColor(sf::Color::White);
+        scoresLabel.setPosition({340.f, 150.f});
+        window.draw(scoresLabel);
+        
+        // Display each player's score
+        std::array<sf::Color, 4> colors{
+            sf::Color::Green,
+            sf::Color::Blue,
+            sf::Color(255, 165, 0), // Orange
+            sf::Color::Yellow
+        };
+        
+        for (size_t i = 0; i < state.players.size(); ++i) {
+            const auto& p = state.players[i];
+            sf::Text playerScore(font);
+            std::ostringstream oss;
+            oss << "Player " << (p.id + 1) << ": " << p.score << " points";
+            playerScore.setString(oss.str());
+            playerScore.setCharacterSize(24);
+            playerScore.setFillColor(colors[p.id % 4]);
+            playerScore.setPosition({340.f, 210.f + (i * 40.f)});
+            window.draw(playerScore);
+        }
+        
+        // Back to Start button
+        sf::RectangleShape button(sf::Vector2f(300.f, 80.f));
+        button.setPosition({350.f, 480.f});
+        
+        // Check if mouse is hovering
+        bool isHovered = mousePos.x >= 350.f && mousePos.x <= 650.f &&
+                       mousePos.y >= 480.f && mousePos.y <= 560.f;
+        
+        if (isHovered) {
+            button.setFillColor(sf::Color(200, 0, 0));
+        } else {
+            button.setFillColor(sf::Color(150, 0, 0));
+        }
+        
+        button.setOutlineColor(sf::Color::White);
+        button.setOutlineThickness(3.f);
+        window.draw(button);
+        
+        sf::Text buttonText(font);
+        buttonText.setString("BACK TO START");
+        buttonText.setCharacterSize(32);
+        buttonText.setFillColor(sf::Color::White);
+        buttonText.setPosition({375.f, 500.f});
+        window.draw(buttonText);
         
         window.display();
     }
@@ -456,16 +696,50 @@ int main(int argc, char* argv[]) {
     lastInputs.fill(Direction::Right);
     sf::Clock inputClock;
     
+    // Send connect message with controller count
+    int controllerCount = InputAdapter::countConnectedControllers();
+    std::cout << "Sending connect message: " << controllerCount << " controller(s)" << std::endl;
+    client.sendConnect(controllerCount);
+    
+    // Load font for lobby UI
+    sf::Font font;
+    bool fontLoaded = font.openFromFile("C:/Windows/Fonts/arial.ttf");
+    
+    sf::Vector2f mousePos;
+    bool startButtonClicked = false;
+    
     while (window.isOpen()) {
         // Handle events
         while (auto e = window.pollEvent()) {
             if (e->is<sf::Event::Closed>()) {
                 window.close();
             }
+            
+            if (const auto* mouseMoved = e->getIf<sf::Event::MouseMoved>()) {
+                mousePos = sf::Vector2f(static_cast<float>(mouseMoved->position.x), 
+                                       static_cast<float>(mouseMoved->position.y));
+            }
+            
+            if (e->is<sf::Event::MouseButtonPressed>()) {
+                if (currentState.state == 2) {  // ENDED - check for back to start button
+                    if (mousePos.x >= 350.f && mousePos.x <= 650.f &&
+                        mousePos.y >= 480.f && mousePos.y <= 560.f) {
+                        client.sendResetGame();
+                    }
+                } else if (!currentState.gameActive) {  // LOBBY - check for start button
+                    // Check if start button was clicked
+                    if (mousePos.x >= 350.f && mousePos.x <= 650.f &&
+                        mousePos.y >= 400.f && mousePos.y <= 480.f &&
+                        currentState.connectedPlayers > 0) {
+                        client.sendStartGame();
+                        startButtonClicked = true;
+                    }
+                }
+            }
         }
         
-        // Send input every 100ms to avoid flooding
-        if (inputClock.getElapsedTime().asMilliseconds() > 100) {
+        // Send input every 100ms to avoid flooding (only when game is active)
+        if (currentState.gameActive && inputClock.getElapsedTime().asMilliseconds() > 100) {
             for (int player = 0; player < MAX_PLAYERS; ++player) {
                 auto newInput = InputAdapter::getInput(player); // player maps to joystick index
                 if (newInput && *newInput != lastInputs[player]) {
@@ -531,8 +805,25 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        // Render
-        Renderer::drawState(window, currentState);
+        // Render lobby, game, or end screen
+        if (currentState.state == 2) {  // ENDED
+            if (fontLoaded) {
+                Renderer::drawEndScreen(window, currentState, font, mousePos);
+            } else {
+                window.clear(sf::Color(30, 30, 30));
+                window.display();
+            }
+        } else if (!currentState.gameActive || currentState.state == 0) {  // LOBBY
+            if (fontLoaded) {
+                Renderer::drawLobby(window, currentState, font, mousePos, startButtonClicked);
+            } else {
+                // Fallback if font doesn't load
+                window.clear(sf::Color(30, 30, 30));
+                window.display();
+            }
+        } else {  // ACTIVE
+            Renderer::drawState(window, currentState);
+        }
     }
     
     client.disconnect();

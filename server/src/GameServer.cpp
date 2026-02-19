@@ -195,13 +195,15 @@ void GameServer::acceptLoop() {
         
         std::cout << "Client connected: ID=" << connId << std::endl;
         m_connections.push_back(std::move(conn));
-        
-        // Start game if we have at least one player and game not started
-        if (m_connections.size() == 1 && !m_gameLogic.isGameActive()) {
-            m_gameLogic.init(GameLogic::MAX_PLAYERS);
-            std::cout << "Game initialized with " << GameLogic::MAX_PLAYERS << " players" << std::endl;
-        }
     }
+}
+
+int GameServer::getTotalControllerCount() const {
+    int total = 0;
+    for (const auto& conn : m_connections) {
+        total += conn->getControllerCount();
+    }
+    return total;
 }
 
 void GameServer::gameLoop() {
@@ -253,12 +255,68 @@ void GameServer::handleClientMessages() {
         
         Protocol::Message msg = parseMessage(data);
         
-        if (msg.type == Protocol::MessageType::INPUT) {
+        if (msg.type == Protocol::MessageType::CONNECT) {
+            // Client reports how many controllers it has
+            conn->setControllerCount(msg.controllerCount);
+            
+            // Assign sequential player IDs to this connection
+            std::vector<int> playerIds;
+            for (int i = 0; i < msg.controllerCount && m_nextPlayerId < GameLogic::MAX_PLAYERS; ++i) {
+                playerIds.push_back(m_nextPlayerId++);
+            }
+            conn->setPlayerIds(playerIds);
+            
+            std::cout << "Connection " << conn->getId() << " assigned player IDs: ";
+            for (int pid : playerIds) {
+                std::cout << pid << " ";
+            }
+            std::cout << std::endl;
+            
+            // Initialize lobby with total controller count if in LOBBY state
+            if (m_gameLogic.getState().state == Protocol::GameStateType::LOBBY) {
+                int totalControllers = getTotalControllerCount();
+                if (totalControllers > 0) {
+                    m_gameLogic.init(totalControllers);
+                    m_nextPlayerId = totalControllers;  // Reset to next available
+                    std::cout << "Lobby initialized with " << totalControllers << " player(s), waiting for game start..." << std::endl;
+                }
+            }
+        }
+        else if (msg.type == Protocol::MessageType::INPUT) {
             std::lock_guard<std::mutex> inputLock(m_inputMutex);
-            int playerId = msg.playerId >= 0 ? msg.playerId : conn->getPlayerId();
-            if (playerId >= 0 && playerId < GameLogic::MAX_PLAYERS) {
-                m_pendingInputs[playerId].playerId = playerId;
-                m_pendingInputs[playerId].direction = msg.direction;
+            // Map local player ID to global player ID using connection's mapping
+            int globalPlayerId = conn->getGlobalPlayerId(msg.playerId);
+            if (globalPlayerId >= 0 && globalPlayerId < GameLogic::MAX_PLAYERS) {
+                m_pendingInputs[globalPlayerId].playerId = globalPlayerId;
+                m_pendingInputs[globalPlayerId].direction = msg.direction;
+            }
+        }
+        else if (msg.type == Protocol::MessageType::START_GAME) {
+            if (!m_gameLogic.isGameActive()) {
+                std::cout << "Game started by player " << conn->getPlayerId() << std::endl;
+                m_gameLogic.startGame();
+                
+                // Clear pending inputs for a clean start
+                for (int i = 0; i < GameLogic::MAX_PLAYERS; ++i) {
+                    m_pendingInputs[i].playerId = i;
+                    m_pendingInputs[i].direction = Protocol::Direction::Right;
+                }
+            }
+        }
+        else if (msg.type == Protocol::MessageType::RESET_GAME) {
+            std::cout << "Game reset by player " << conn->getPlayerId() << std::endl;
+            
+            // Reinitialize with current total controller count
+            int totalControllers = getTotalControllerCount();
+            if (totalControllers > 0) {
+                m_gameLogic.init(totalControllers);
+                m_nextPlayerId = totalControllers;  // Reset player ID counter
+            }
+            
+            // Clear pending inputs to prevent old directions from carrying over
+            for (int i = 0; i < GameLogic::MAX_PLAYERS; ++i) {
+                m_pendingInputs[i].playerId = i;
+                m_pendingInputs[i].direction = Protocol::Direction::Right;
             }
         }
     }
@@ -266,17 +324,23 @@ void GameServer::handleClientMessages() {
 
 void GameServer::broadcastGameState() {
     Protocol::GameState state = m_gameLogic.getState();
-    std::string stateJson = serializeGameState(state);
+    
+    // Count actual players in the game, not network connections
+    int connectedCount = state.players.size();
     
     std::lock_guard<std::mutex> lock(m_connectionsMutex);
+    std::string stateJson = serializeGameState(state, connectedCount);
+    
     for (auto& conn : m_connections) {
         conn->send(stateJson);
     }
 }
 
-std::string GameServer::serializeGameState(const Protocol::GameState& state) {
+std::string GameServer::serializeGameState(const Protocol::GameState& state, int connectedCount) {
     std::ostringstream oss;
     oss << "{\"type\":\"state\",\"active\":" << (state.gameActive ? "true" : "false");
+    oss << ",\"connected\":" << connectedCount;
+    oss << ",\"state\":" << static_cast<int>(state.state);
     
     // Serialize players
     oss << ",\"players\":[";
@@ -313,6 +377,24 @@ Protocol::Message GameServer::parseMessage(const std::string& data) {
     
     // Simple JSON parsing (in production, use a proper JSON library)
     const size_t npos = static_cast<size_t>(-1);
+    
+    // Check for "connect" message with controller count
+    size_t connectPos = data.find("\"type\":\"connect\"");
+    if (connectPos != npos) {
+        msg.type = Protocol::MessageType::CONNECT;
+        
+        // Extract controller count
+        size_t ctrlPos = data.find("\"controllers\":");
+        if (ctrlPos != npos) {
+            ctrlPos += 14; // Skip "controllers":
+            msg.controllerCount = std::stoi(data.substr(ctrlPos));
+        } else {
+            msg.controllerCount = 1;  // Default to 1 if not specified
+        }
+        
+        return msg;
+    }
+    
     size_t typePos = data.find("\"type\":\"input\"");
     if (typePos != npos) {
         msg.type = Protocol::MessageType::INPUT;
@@ -331,6 +413,20 @@ Protocol::Message GameServer::parseMessage(const std::string& data) {
             pidPos += 11; // Skip "playerId":
             msg.playerId = std::stoi(data.substr(pidPos));
         }
+        
+        return msg;
+    }
+    
+    size_t startPos = data.find("\"type\":\"start\"");
+    if (startPos != npos) {
+        msg.type = Protocol::MessageType::START_GAME;
+        return msg;
+    }
+    
+    size_t resetPos = data.find("\"type\":\"reset\"");
+    if (resetPos != npos) {
+        msg.type = Protocol::MessageType::RESET_GAME;
+        return msg;
     }
     
     return msg;

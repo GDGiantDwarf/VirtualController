@@ -7,25 +7,55 @@ GameLogic::GameLogic() : m_rng(std::random_device{}()) {
 void GameLogic::init(int playerCount) {
     m_players.clear();
     m_food.clear();
-    m_gameActive = true;
+    m_gameActive = false; // Start in lobby mode, not active
+    m_state = Protocol::GameStateType::LOBBY;
     
-    // Starting positions for up to 4 players
-    static std::array<Protocol::Vec2, 4> starts{
-        Protocol::Vec2{10, 10}, 
-        Protocol::Vec2{50, 10}, 
-        Protocol::Vec2{10, 30}, 
-        Protocol::Vec2{50, 30}
-    };
+    // Clamp player count to valid range (1-4)
+    playerCount = std::max(1, std::min(playerCount, MAX_PLAYERS));
+    m_playerCount = playerCount;
     
-    static std::array<Protocol::Direction, 4> dirs{
-        Protocol::Direction::Right, 
-        Protocol::Direction::Left, 
-        Protocol::Direction::Right, 
-        Protocol::Direction::Left
-    };
+    // Define starting positions based on player count
+    // Grid is 60x40
+    std::array<Protocol::Vec2, 4> starts;
+    std::array<Protocol::Direction, 4> dirs;
     
-    playerCount = std::min(playerCount, MAX_PLAYERS);
+    switch (playerCount) {
+        case 1:
+            // Single player at center
+            starts[0] = Protocol::Vec2{30, 20};
+            dirs[0] = Protocol::Direction::Right;
+            break;
+        case 2:
+            // Two players at opposite corners
+            starts[0] = Protocol::Vec2{10, 10};
+            dirs[0] = Protocol::Direction::Right;
+            starts[1] = Protocol::Vec2{50, 30};
+            dirs[1] = Protocol::Direction::Left;
+            break;
+        case 3:
+            // Three players in triangle formation
+            starts[0] = Protocol::Vec2{10, 10};
+            dirs[0] = Protocol::Direction::Right;
+            starts[1] = Protocol::Vec2{50, 10};
+            dirs[1] = Protocol::Direction::Left;
+            starts[2] = Protocol::Vec2{30, 30};
+            dirs[2] = Protocol::Direction::Up;
+            break;
+        case 4:
+        default:
+            // Four players at corners
+            starts[0] = Protocol::Vec2{10, 10};
+            dirs[0] = Protocol::Direction::Right;
+            starts[1] = Protocol::Vec2{50, 10};
+            dirs[1] = Protocol::Direction::Left;
+            starts[2] = Protocol::Vec2{10, 30};
+            dirs[2] = Protocol::Direction::Right;
+            starts[3] = Protocol::Vec2{50, 30};
+            dirs[3] = Protocol::Direction::Left;
+            break;
+    }
     
+    // Create players
     for (int i = 0; i < playerCount; ++i) {
         InternalPlayerState p;
         p.id = i;
@@ -74,12 +104,14 @@ void GameLogic::tick() {
     // Check if game should end (all players dead)
     if (getAliveCount() == 0) {
         m_gameActive = false;
+        m_state = Protocol::GameStateType::ENDED;
     }
 }
 
 Protocol::GameState GameLogic::getState() const {
     Protocol::GameState state;
     state.gameActive = m_gameActive;
+    state.state = m_state;
     state.food = m_food;
     
     for (const auto& p : m_players) {
@@ -105,6 +137,20 @@ int GameLogic::getAliveCount() const {
         if (p.alive) count++;
     }
     return count;
+}
+
+int GameLogic::getPlayerCount() const {
+    return m_playerCount;
+}
+
+void GameLogic::startGame() {
+    m_gameActive = true;
+    m_state = Protocol::GameStateType::ACTIVE;
+}
+
+void GameLogic::resetGame() {
+    // Re-initialize game back to lobby
+    init(m_playerCount);
 }
 
 void GameLogic::spawnFood() {

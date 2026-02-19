@@ -1,6 +1,7 @@
 #include "GameScanner.h"
 #include <QDir>
 #include <QFileInfo>
+#include <QCoreApplication>
 #include <QDebug>
 
 GameScanner::GameScanner(QObject* parent)
@@ -10,24 +11,28 @@ GameScanner::GameScanner(QObject* parent)
 QVector<GameInfo> GameScanner::scanGames(const QString& gamesDirectory) {
     QVector<GameInfo> games;
     
-    QDir gamesDir(gamesDirectory);
-    if (!gamesDir.exists()) {
-        qWarning() << "Games directory does not exist:" << gamesDirectory;
-        return games;
-    }
+    // Get all .exe files from the build output directory (except the launcher itself)
+    QDir buildDir(QCoreApplication::applicationDirPath());
+    QStringList exeFiles = buildDir.entryList(QStringList("*.exe"), QDir::Files);
     
-    // Get all subdirectories
-    QFileInfoList folders = gamesDir.entryInfoList(
-        QDir::Dirs | QDir::NoDotAndDotDot, 
-        QDir::Name
-    );
-    
-    for (const QFileInfo& folderInfo : folders) {
-        QString folderName = folderInfo.fileName();
-        QString folderPath = folderInfo.absoluteFilePath();
+    for (const QString& exeFile : exeFiles) {
+        QString gameName = exeFile.left(exeFile.length() - 4); // Remove .exe extension
         
-        if (isValidGameFolder(folderPath, folderName)) {
-            GameInfo game = createGameInfo(folderPath, folderName);
+        // Skip the launcher itself and server
+        if (gameName == "GameLibraryLauncher" || gameName == "GameServer") {
+            continue;
+        }
+        
+        // Validate that at least the executable exists
+        QString exePath = buildDir.filePath(exeFile);
+        QFileInfo exeInfo(exePath);
+        
+        if (exeInfo.exists() && exeInfo.isFile()) {
+            // Try to load icon from build directory, but don't require it
+            QString icoPath = buildDir.filePath(gameName + ".ico");
+            
+            // Create a dummy games folder path (not used anymore, but kept for compatibility)
+            GameInfo game(gameName, gamesDirectory + "/" + gameName, exePath, icoPath);
             games.append(game);
             qDebug() << "Found game:" << game.name << "at" << game.executablePath;
         }
@@ -37,40 +42,18 @@ QVector<GameInfo> GameScanner::scanGames(const QString& gamesDirectory) {
 }
 
 bool GameScanner::isValidGameFolder(const QString& folderPath, const QString& folderName) {
-    QDir folder(folderPath);
-
-    // Prefer build/bin/Release/<name>.exe if present, fall back to <name>.exe
-    const QString releaseExePath = folder.filePath("build/bin/Release/" + folderName + ".exe");
-    const QString flatExePath = folder.filePath(folderName + ".exe");
-
-    QFileInfo releaseExe(releaseExePath);
-    QFileInfo flatExe(flatExePath);
-
-    if (releaseExe.exists() && releaseExe.isFile()) {
-        return true;
-    }
-
-    if (flatExe.exists() && flatExe.isFile()) {
-        return true;
-    }
-
-    qDebug() << "Game folder" << folderName << "missing executable in either" << releaseExePath
-             << "or" << flatExePath;
-    return false;
+    // This function is now deprecated - we scan the build directory directly
+    // Kept for backward compatibility if needed
+    return true;
 }
 
 GameInfo GameScanner::createGameInfo(const QString& folderPath, const QString& folderName) {
-    QDir folder(folderPath);
-
-    // Pick build/bin/Release executable if available; otherwise use flat exe
-    QString exePath = folder.filePath("build/bin/Release/" + folderName + ".exe");
-    QFileInfo exeInfo(exePath);
-    if (!exeInfo.exists() || !exeInfo.isFile()) {
-        exePath = folder.filePath(folderName + ".exe");
-    }
-
-    QString icoPath = folder.filePath(folderName + ".ico");
+    // Use executable from root build directory (unified build)
+    QDir rootBuildDir(QCoreApplication::applicationDirPath());
+    QString exePath = rootBuildDir.filePath(folderName + ".exe");
     
-    // Icon is optional, exe is mandatory
+    // Icon is also in the build output directory now (copied at build time)
+    QString icoPath = rootBuildDir.filePath(folderName + ".ico");
+    
     return GameInfo(folderName, folderPath, exePath, icoPath);
 }

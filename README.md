@@ -18,22 +18,37 @@ Multi-player virtual controller system using ViGEmBus for Windows with client-se
 - [ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases) - for virtual controllers.
 
 ## Quick Start
-To build the project, you only need to run the executable `build.bat` while in the root directory
+To build the project, run `build.bat` from the **root directory only**:
 
-**Note**: This assumes that Qt, ViGEmClient and vcpkg are in their default installation paths. you may edit those paths directly in the build.bat file.
+```bash
+build.bat
+```
+
+**⚠️ Important:** Always build from the root directory. The project uses a unified build system - do NOT build from individual component folders (launcher/, server/, games/).
+
+**Note**: This assumes Qt, ViGEmClient, and vcpkg are in their default installation paths. Edit paths in build.bat if needed.
+
+All executables are output to: `build/bin/Release/`
+
+## User Guides
+
+New to VirtualController? Start here:
+
+- **[General User Guide (PDF)](General%20User%20Guide.pdf)** - How to use the system with any game and any number of players
+- **[Snake Game User Guide (PDF)](Snake%20Game%20User%20Guide.pdf)** - Specific guide to playing the Snake game
 
 ## Running the Application
 
 ```powershell
 # Start the server (in terminal 1)
-.\server\build\bin\Release\GameServer.exe
+.\build\bin\Release\GameServer.exe
 
 # Start the launcher (in terminal 2)
-.\launcher\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8765
+.\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8765
 
-# Launch Snake from the launcher UI
+# Launch Snake from the launcher UI (recommended)
 # Or run directly:
-.\games\snake\build\bin\Release\snake.exe 127.0.0.1 8765
+.\build\bin\Release\snake.exe 127.0.0.1 8765
 ```
 
 ## Debug Proxy (Optional)
@@ -44,8 +59,39 @@ Monitor all network traffic in real-time:
 python debug_proxy.py
 
 # Then connect launcher to proxy instead:
-.\launcher\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8766
+.\build\bin\Release\GameLibraryLauncher.exe 127.0.0.1 8766
 ```
+
+## Testing
+
+### Automated Tests (GitHub Actions CI)
+
+Protocol validation tests run automatically on every push and pull request:
+
+```bash
+# Run protocol tests locally (36 tests, no dependencies)
+python tests\test_protocol.py -v
+```
+
+**CI Status**: Protocol tests must pass before merging to main/develop.
+
+### Full Test Suite (Local Testing)
+
+For complete testing including network functionality, run tests locally with built binaries:
+
+```bash
+# Terminal 1: Build and start GameServer
+build.bat
+.\build\bin\Release\GameServer.exe
+
+# Terminal 2: Run all tests
+python tests\test_protocol.py -v      # 36 protocol tests
+python tests\test_networking.py -v    # 15 networking tests
+```
+
+**Test Coverage**: 51 total tests (36 protocol + 15 networking)
+
+See [Testing Policy](docs/TESTING_POLICY.md) for complete testing strategy and [Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md) for detailed procedures.
 
 ## Architecture
 
@@ -53,16 +99,17 @@ python debug_proxy.py
 
 ```
 VirtualController/
+├── build/             # Unified build output (all executables here)
+│   └── bin/Release/   # GameLibraryLauncher.exe, GameServer.exe, snake.exe
 ├── launcher/          # Qt6 launcher + ViGEm controller manager
-│   ├── src/
-│   └── build/
+│   └── src/
 ├── server/            # TCP game server
-│   ├── src/
-│   └── build/
+│   └── src/
 └── games/snake/       # SFML networked game client
-    ├── snake_client.cpp
-    └── build/
+    └── snake.cpp
 ```
+
+**Note:** Individual component folders (launcher/, server/, games/) should NOT contain build/ directories. All builds use the root `build/` directory.
 
 ### Multiplayer Flow
 
@@ -81,6 +128,21 @@ VirtualController/
 - **Client**: Input capture, rendering, JSON protocol over TCP
 - **Launcher**: Discovers games, manages local virtual controllers
 
+## Documentation
+
+Comprehensive technical documentation is available in the `docs/` directory:
+
+- **[Documentation Overview](docs/00_DOCUMENTATION_OVERVIEW.md)** - Start here for navigation
+- **[Core Architecture](docs/01_CORE_ARCHITECTURE.md)** - System design and components
+- **[Server & Networking](docs/02_SERVER_AND_NETWORKING.md)** - Server implementation details
+- **[Game Protocol](docs/03_GAME_PROTOCOL.md)** - JSON message specification
+- **[Launcher & Discovery](docs/04_LAUNCHER_AND_DISCOVERY.md)** - Game launcher details
+- **[Snake Game Implementation](docs/05_SNAKE_GAME_IMPLEMENTATION.md)** - Reference game walkthrough
+- **[Adding New Games](docs/06_ADDING_NEW_GAMES.md)** - Step-by-step development guide
+- **[Build System](docs/07_BUILD_SYSTEM.md)** - CMake configuration and compilation
+- **[Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md)** - Testing scenarios and troubleshooting
+- **[Testing Policy](docs/Testing%20Policy.pdf)** - Testing strategy, frameworks, and test types
+
 ## Development
 
 ### Adding Games
@@ -89,12 +151,13 @@ Games must follow this structure:
 ```
 games/
 └── your_game/
-    ├── your_game.exe          # Must match folder name
-    └── build/                 # Build directory
-        └── bin/Release/
-            └── your_game.exe
+    ├── your_game.cpp          # Game source
+    ├── your_game.ico          # 48×48 icon
+    └── CMakeLists.txt         # Build configuration
 ```
 
-The launcher's GameScanner automatically discovers games in the `games/` folder.
-It will only detect games whose .exe file matches the folder name.
-Any matching .ico file will also be used in the launcher to represent your game
+See [Adding New Games](docs/06_ADDING_NEW_GAMES.md) for complete instructions.
+
+The launcher's GameScanner automatically discovers games in the build output directory (`build/bin/Release/`).
+It will only detect games whose .exe file matches the game name.
+Any matching .ico file will also be used in the launcher to represent your game.

@@ -57,14 +57,16 @@ private:
     
     std::thread m_acceptThread;
     std::thread m_gameThread;
+    int m_nextPlayerId{0};  // Track next player ID to assign to connections
     
     bool initializeSocket();
     void acceptLoop();
     void gameLoop();
     void handleClientMessages();
     void broadcastGameState();
+    int getTotalControllerCount() const;  // Count total controllers across all connections
     
-    std::string serializeGameState(const Protocol::GameState& state);
+    std::string serializeGameState(const Protocol::GameState& state, int connectedCount);
     Protocol::Message parseMessage(const std::string& data);
     bool isValidJson(const std::string& data);
 };
