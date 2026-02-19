@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 #include <memory>
+#include <vector>
 #ifdef _WIN32
     #define NOMINMAX
     #define WIN32_LEAN_AND_MEAN
@@ -75,11 +76,22 @@ public:
      */
     int getControllerCount() const { return m_controllerCount; }
     
+    /**
+     * @brief Set the global player IDs assigned to this connection
+     */
+    void setPlayerIds(const std::vector<int>& ids) { m_playerIds = ids; }
+    
+    /**
+     * @brief Map a local player index to global player ID
+     */
+    int getGlobalPlayerId(int localPlayerId) const;
+    
 private:
     SocketHandle m_socket;
     int m_id;
     int m_playerId{-1};
     int m_controllerCount{0};
+    std::vector<int> m_playerIds;  // Global player IDs assigned to this connection
     bool m_alive{true};
 };
 

@@ -57,6 +57,7 @@ private:
     
     std::thread m_acceptThread;
     std::thread m_gameThread;
+    int m_nextPlayerId{0};  // Track next player ID to assign to connections
     
     bool initializeSocket();
     void acceptLoop();

@@ -258,23 +258,37 @@ void GameServer::handleClientMessages() {
         if (msg.type == Protocol::MessageType::CONNECT) {
             // Client reports how many controllers it has
             conn->setControllerCount(msg.controllerCount);
-            std::cout << "Connection " << conn->getId() << " has " << msg.controllerCount << " controller(s)" << std::endl;
+            
+            // Assign sequential player IDs to this connection
+            std::vector<int> playerIds;
+            for (int i = 0; i < msg.controllerCount && m_nextPlayerId < GameLogic::MAX_PLAYERS; ++i) {
+                playerIds.push_back(m_nextPlayerId++);
+            }
+            conn->setPlayerIds(playerIds);
+            
+            std::cout << "Connection " << conn->getId() << " assigned player IDs: ";
+            for (int pid : playerIds) {
+                std::cout << pid << " ";
+            }
+            std::cout << std::endl;
             
             // Initialize lobby with total controller count if in LOBBY state
             if (m_gameLogic.getState().state == Protocol::GameStateType::LOBBY) {
                 int totalControllers = getTotalControllerCount();
                 if (totalControllers > 0) {
                     m_gameLogic.init(totalControllers);
+                    m_nextPlayerId = totalControllers;  // Reset to next available
                     std::cout << "Lobby initialized with " << totalControllers << " player(s), waiting for game start..." << std::endl;
                 }
             }
         }
         else if (msg.type == Protocol::MessageType::INPUT) {
             std::lock_guard<std::mutex> inputLock(m_inputMutex);
-            int playerId = msg.playerId >= 0 ? msg.playerId : conn->getPlayerId();
-            if (playerId >= 0 && playerId < GameLogic::MAX_PLAYERS) {
-                m_pendingInputs[playerId].playerId = playerId;
-                m_pendingInputs[playerId].direction = msg.direction;
+            // Map local player ID to global player ID using connection's mapping
+            int globalPlayerId = conn->getGlobalPlayerId(msg.playerId);
+            if (globalPlayerId >= 0 && globalPlayerId < GameLogic::MAX_PLAYERS) {
+                m_pendingInputs[globalPlayerId].playerId = globalPlayerId;
+                m_pendingInputs[globalPlayerId].direction = msg.direction;
             }
         }
         else if (msg.type == Protocol::MessageType::START_GAME) {
@@ -296,6 +310,7 @@ void GameServer::handleClientMessages() {
             int totalControllers = getTotalControllerCount();
             if (totalControllers > 0) {
                 m_gameLogic.init(totalControllers);
+                m_nextPlayerId = totalControllers;  // Reset player ID counter
             }
             
             // Clear pending inputs to prevent old directions from carrying over

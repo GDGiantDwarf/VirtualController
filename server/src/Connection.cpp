@@ -70,3 +70,10 @@ void Connection::close() {
         m_alive = false;
     }
 }
+
+int Connection::getGlobalPlayerId(int localPlayerId) const {
+    if (localPlayerId >= 0 && localPlayerId < static_cast<int>(m_playerIds.size())) {
+        return m_playerIds[localPlayerId];
+    }
+    return -1;
+}
