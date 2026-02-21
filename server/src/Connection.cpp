@@ -1,5 +1,6 @@
 #include "Connection.h"
 #include <cstring>
+#include <cerrno>
 
 Connection::Connection(SocketHandle socket, int id)
     : m_socket(socket), m_id(id), m_alive(true) {
@@ -19,14 +20,27 @@ bool Connection::send(const std::string& data) {
     while (sent < total) {
         #ifdef _WIN32
             int result = ::send(m_socket, buf + sent, static_cast<int>(total - sent), 0);
+            if (result == SOCKET_ERROR) {
+                int err = WSAGetLastError();
+                if (err == WSAEWOULDBLOCK) {
+                    // Would block, try again
+                    continue;
+                }
+                m_alive = false;
+                return false;
+            }
         #else
-            ssize_t result = ::send(m_socket, buf + sent, total - sent, 0);
+            ssize_t result = ::send(m_socket, buf + sent, total - sent, MSG_NOSIGNAL);
+            if (result < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    // Would block, try again
+                    continue;
+                }
+                m_alive = false;
+                return false;
+            }
         #endif
         
-        if (result <= 0) {
-            m_alive = false;
-            return false;
-        }
         sent += result;
     }
     
@@ -41,15 +55,32 @@ std::string Connection::receive() {
     
     #ifdef _WIN32
         int result = ::recv(m_socket, buffer, sizeof(buffer) - 1, 0);
+        if (result == SOCKET_ERROR) {
+            int err = WSAGetLastError();
+            if (err == WSAEWOULDBLOCK) {
+                // No data available, not an error
+                return "";
+            }
+            // Actual error
+            m_alive = false;
+            return "";
+        }
     #else
         ssize_t result = ::recv(m_socket, buffer, sizeof(buffer) - 1, 0);
+        if (result < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // No data available, not an error
+                return "";
+            }
+            // Actual error
+            m_alive = false;
+            return "";
+        }
     #endif
     
-    if (result <= 0) {
-        if (result == 0) {
-            // Connection closed gracefully
-            m_alive = false;
-        }
+    if (result == 0) {
+        // Connection closed gracefully
+        m_alive = false;
         return "";
     }
     

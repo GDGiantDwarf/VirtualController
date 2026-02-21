@@ -193,6 +193,16 @@ void GameServer::acceptLoop() {
         }
         
         int connId = m_connections.size();
+        
+        // Set client socket to non-blocking mode
+        #ifdef _WIN32
+            u_long mode = 1;
+            ioctlsocket(clientSocket, FIONBIO, &mode);
+        #else
+            int flags = fcntl(clientSocket, F_GETFL, 0);
+            fcntl(clientSocket, F_SETFL, flags | O_NONBLOCK);
+        #endif
+        
         auto conn = std::make_unique<Connection>(clientSocket, connId);
         conn->setPlayerId(connId);
         
@@ -256,9 +266,15 @@ void GameServer::handleClientMessages() {
         std::string data = conn->receive();
         if (data.empty()) continue;
         
-        Protocol::Message msg = parseMessage(data);
+        // Split by newlines - multiple messages may arrive in one recv
+        std::istringstream stream(data);
+        std::string line;
+        while (std::getline(stream, line)) {
+            if (line.empty()) continue;
+            
+            Protocol::Message msg = parseMessage(line);
         
-        if (msg.type == Protocol::MessageType::CONNECT) {
+            if (msg.type == Protocol::MessageType::CONNECT) {
             // Client reports how many controllers it has
             conn->setControllerCount(msg.controllerCount);
             
@@ -289,6 +305,8 @@ void GameServer::handleClientMessages() {
             std::lock_guard<std::mutex> inputLock(m_inputMutex);
             // Map local player ID to global player ID using connection's mapping
             int globalPlayerId = conn->getGlobalPlayerId(msg.playerId);
+            std::cout << "INPUT: local=" << msg.playerId << " global=" << globalPlayerId 
+                      << " dir=" << static_cast<int>(msg.direction) << std::endl;
             if (globalPlayerId >= 0 && globalPlayerId < GameLogic::MAX_PLAYERS) {
                 m_pendingInputs[globalPlayerId].playerId = globalPlayerId;
                 m_pendingInputs[globalPlayerId].direction = msg.direction;
@@ -322,6 +340,7 @@ void GameServer::handleClientMessages() {
                 m_pendingInputs[i].direction = Protocol::Direction::Right;
             }
         }
+        } // end while(getline)
     }
 }
 
