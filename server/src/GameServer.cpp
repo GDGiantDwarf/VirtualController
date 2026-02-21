@@ -8,6 +8,9 @@
     #define NOMINMAX
     #define WIN32_LEAN_AND_MEAN
     #pragma comment(lib, "ws2_32.lib")
+#else
+    #include <fcntl.h>
+    #include <unistd.h>
 #endif
 
 GameServer::GameServer(int port) : m_port(port) {
