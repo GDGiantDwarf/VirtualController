@@ -193,6 +193,16 @@ void GameServer::acceptLoop() {
         }
         
         int connId = m_connections.size();
+        
+        // Set client socket to non-blocking mode
+        #ifdef _WIN32
+            u_long mode = 1;
+            ioctlsocket(clientSocket, FIONBIO, &mode);
+        #else
+            int flags = fcntl(clientSocket, F_GETFL, 0);
+            fcntl(clientSocket, F_SETFL, flags | O_NONBLOCK);
+        #endif
+        
         auto conn = std::make_unique<Connection>(clientSocket, connId);
         conn->setPlayerId(connId);
         
