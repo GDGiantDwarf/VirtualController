@@ -1,0 +1,33 @@
+name: Deploy Server to OVH VPS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'server/**'  # Only trigger when server folder changes
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}  # Usually 22
+          script: |
+            cd /opt/VirtualController  # Change this to your actual path on VPS
+            git pull origin main
+            
+            # Build the server (adjust based on your build process)
+            cd server
+            mkdir -p build && cd build
+            cmake ..
+            make -j$(nproc)
+            
+            # Restart the server service
+            sudo systemctl restart virtualcontroller-server
