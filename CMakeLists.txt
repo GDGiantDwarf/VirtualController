@@ -61,6 +61,9 @@ add_subdirectory(server)
 # Snake game
 add_subdirectory(games/snake)
 
+# Karting game
+add_subdirectory(games/karting)
+
 # C++ Unit Tests (Google Test)
 option(BUILD_TESTS "Build unit tests" ON)
 if(BUILD_TESTS)
@@ -76,6 +79,7 @@ message(STATUS "Components:")
 message(STATUS "  - Desktop Launcher (Qt6)  : launcher/")
 message(STATUS "  - Game Server (TCP)        : server/")
 message(STATUS "  - Snake Game Client (SFML) : games/snake/")
+message(STATUS "  - Karting Game Client (SFML) : games/karting/")
 message(STATUS "  - Mobile Controller       : mobile_controller/")
 if(BUILD_TESTS)
     message(STATUS "  - C++ Unit Tests (GTest)  : tests/")
