@@ -21,7 +21,11 @@ Multi-player virtual controller system using ViGEmBus for Windows with client-se
 To build the project, run `build.bat` from the **root directory only**:
 
 ```bash
+# Build everything (launcher, server, snake, and tests)
 build.bat
+
+# Build without tests (faster for development)
+build.bat --no-tests
 ```
 
 **⚠️ Important:** Always build from the root directory. The project uses a unified build system - do NOT build from individual component folders (launcher/, server/, games/).
