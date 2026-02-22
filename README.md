@@ -21,7 +21,11 @@ Multi-player virtual controller system using ViGEmBus for Windows with client-se
 To build the project, run `build.bat` from the **root directory only**:
 
 ```bash
+# Build everything (launcher, server, snake, and tests)
 build.bat
+
+# Build without tests (faster for development)
+build.bat --no-tests
 ```
 
 **⚠️ Important:** Always build from the root directory. The project uses a unified build system - do NOT build from individual component folders (launcher/, server/, games/).
@@ -66,32 +70,38 @@ python debug_proxy.py
 
 ### Automated Tests (GitHub Actions CI)
 
-Protocol validation tests run automatically on every push and pull request:
+All tests run automatically on every push and pull request:
 
 ```bash
-# Run protocol tests locally (36 tests, no dependencies)
-python tests\test_protocol.py -v
+# Run locally what CI runs:
+cd build/tests
+ctest -C Release                      # 33 C++ unit tests
+cd ../..
+python tests\test_protocol.py -v     # 36 protocol tests
+python tests\test_networking.py -v   # 15 networking tests (requires server)
 ```
 
-**CI Status**: Protocol tests must pass before merging to main/develop.
+**CI Status**: All 84 automated tests must pass before merging to main/develop.
 
 ### Full Test Suite (Local Testing)
 
-For complete testing including network functionality, run tests locally with built binaries:
+For complete testing including C++ unit tests and network functionality:
 
 ```bash
-# Terminal 1: Build and start GameServer
-build.bat
-.\build\bin\Release\GameServer.exe
+# C++ unit tests (33 tests - server, launcher, snake logic)
+cd build\tests
+ctest -C Release
 
-# Terminal 2: Run all tests
+# Python tests
 python tests\test_protocol.py -v      # 36 protocol tests
-python tests\test_networking.py -v    # 15 networking tests
+python tests\test_networking.py -v    # 15 networking tests (requires server)
 ```
 
-**Test Coverage**: 51 total tests (36 protocol + 15 networking)
+**Test Coverage**: 84 total tests
+- C++ unit tests: 33 (GameLogic, PlayerIds, ControllerManagement, GameMechanics)
+- Python tests: 51 (36 protocol + 15 networking)
 
-See [Testing Policy](docs/TESTING_POLICY.md) for complete testing strategy and [Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md) for detailed procedures.
+See [tests/README.md](tests/README.md) for detailed test documentation, [Testing Policy](docs/TESTING_POLICY.md) for testing strategy, and [Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md) for procedures.
 
 ## Architecture
 

@@ -272,7 +272,28 @@ Monitor with Visual Studio or Task Manager:
 
 VirtualController includes a comprehensive test suite covering protocol validation, networking, and game logic.
 
-### Quick Test (5 minutes)
+### C++ Unit Tests (Fast, No Dependencies)
+
+Run core logic tests using Google Test:
+
+```bash
+cd d:\GitHub\VirtualController\build\tests
+ctest -C Release
+```
+
+**Expected Output**:
+```
+100% tests passed, 0 tests failed out of 4
+Total Test time (real) = 0.12 sec
+```
+
+**Coverage**: 33 tests across 4 suites:
+- GameLogic (10 tests): State management, player initialization
+- PlayerIds (7 tests): ID assignment logic
+- ControllerManagement (6 tests): Controller tracking
+- GameMechanics (10 tests): Snake movement, collision, boundaries
+
+### Quick Protocol Test (5 minutes)
 
 Run protocol validation tests only:
 
@@ -389,10 +410,20 @@ Test end-to-end user scenarios:
 
 ```
 tests/
-├── test_protocol.py      # 36 unit tests for JSON validation
-├── test_networking.py    # Connectivity and protocol exchange tests
-└── test_e2e_scenarios.md # Manual E2E test procedures (this document)
+├── server/
+│   ├── test_game_logic.cpp         # 10 tests: GameLogic state, player init
+│   └── test_player_ids.cpp         # 7 tests: ID assignment logic
+├── launcher/
+│   └── test_server_sync.cpp        # 6 tests: Controller tracking
+├── snake/
+│   └── test_game_mechanics.cpp     # 10 tests: Movement, collision
+├── test_protocol.py                # 36 tests: JSON validation
+├── test_networking.py              # 15 tests: Server connectivity
+├── CMakeLists.txt                  # C++ test build config (Google Test)
+└── README.md                       # Test documentation
 ```
+
+**Total**: 84 tests (33 C++, 51 Python)
 
 ### Test Results Documentation
 
@@ -401,13 +432,21 @@ After running tests, document results:
 ```markdown
 # Test Results - [DATE]
 
+## C++ Unit Tests
+- Status: PASS (33/33)
+- Duration: 0.12s
+- GameLogic: ✓ PASS (10 tests)
+- PlayerIds: ✓ PASS (7 tests)
+- ControllerManagement: ✓ PASS (6 tests)
+- GameMechanics: ✓ PASS (10 tests)
+
 ## Protocol Tests
 - Status: PASS (36/36)
 - Duration: 0.029s
 - Coverage: CONNECT, INPUT, STATE_UPDATE, START_GAME, RESET_GAME
 
 ## Networking Tests (requires server)
-- Status: PASS (x tests)
+- Status: PASS (15/15)
 - Server: ✓ Running
 - Connection: ✓ Accepted
 - Message Exchange: ✓ Working
@@ -434,23 +473,30 @@ After running tests, document results:
 For CI/CD integration:
 
 ```bash
-# 1. Build project
+# 1. Build project with tests
+cmake .. -DBUILD_TESTS=ON
 cmake --build build --config Release
 
-# 2. Run unit tests
+# 2. Run C++ unit tests
+cd build/tests
+ctest -C Release --output-on-failure > cpp_results.txt
+cd ../..
+
+# 3. Run protocol unit tests
 python tests/test_protocol.py > protocol_results.txt
 
-# 3. Start server (for integration tests)
+# 4. Start server (for integration tests)
 Start-Process -FilePath ".\build\bin\Release\GameServer.exe" -WindowStyle Hidden
 
-# 4. Run networking tests
+# 5. Run networking tests
 Start-Sleep -Seconds 2
 python tests/test_networking.py > networking_results.txt
 
-# 5. Kill server
+# 6. Kill server
 Stop-Process -Name GameServer -Force
 
-# 6. Check results
+# 7. Check results
+echo "C++ tests:" && findstr "tests passed" build/tests/cpp_results.txt
 echo "Protocol tests:" && findstr "OK\|FAILED" protocol_results.txt
 echo "Networking tests:" && findstr "OK\|FAILED" networking_results.txt
 ```

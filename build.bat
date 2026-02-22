@@ -4,6 +4,11 @@ echo VirtualController - Complete Build Script
 echo ================================================
 echo.
 
+REM Parse command line arguments
+set BUILD_TESTS=ON
+if "%1"=="--no-tests" set BUILD_TESTS=OFF
+if "%1"=="-n" set BUILD_TESTS=OFF
+
 REM Set vcpkg toolchain path (adjust if your vcpkg is elsewhere)
 set VCPKG_ROOT=C:\vcpkg
 set VCPKG_TOOLCHAIN=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake
@@ -28,11 +33,16 @@ cd build
 
 echo.
 echo Configuring CMake with vcpkg...
-echo This will build: Launcher, Snake Game, and Server
+if "%BUILD_TESTS%"=="ON" (
+    echo This will build: Launcher, Snake Game, Server, and C++ Unit Tests
+) else (
+    echo This will build: Launcher, Snake Game, and Server (tests disabled)
+)
 echo.
 cmake .. ^
     -DCMAKE_TOOLCHAIN_FILE="%VCPKG_TOOLCHAIN%" ^
-    -DCMAKE_PREFIX_PATH="C:\Qt\6.10.1\msvc2022_64"
+    -DCMAKE_PREFIX_PATH="C:\Qt\6.10.1\msvc2022_64" ^
+    -DBUILD_TESTS=%BUILD_TESTS%
 
 if %errorlevel% neq 0 (
     echo.
@@ -75,6 +85,9 @@ echo Executables built:
 echo   - Launcher: build\bin\Release\GameLibraryLauncher.exe
 echo   - Snake:    build\bin\Release\snake.exe
 echo   - Server:   build\bin\Release\GameServer.exe
+if "%BUILD_TESTS%"=="ON" (
+    echo   - Tests:    build\tests\Release\ (run: ctest -C Release)
+)
 echo.
 echo To run the launcher from PowerShell, execute:
 echo   .\build\bin\Release\GameLibraryLauncher.exe
