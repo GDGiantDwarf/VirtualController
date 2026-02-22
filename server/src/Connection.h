@@ -82,6 +82,11 @@ public:
     void setPlayerIds(const std::vector<int>& ids) { m_playerIds = ids; }
     
     /**
+     * @brief Get the global player IDs assigned to this connection
+     */
+    const std::vector<int>& getPlayerIds() const { return m_playerIds; }
+    
+    /**
      * @brief Map a local player index to global player ID
      */
     int getGlobalPlayerId(int localPlayerId) const;
