@@ -7,9 +7,46 @@ on:
     branches: [ main, master, develop ]
 
 jobs:
+  cpp-unit-tests:
+    runs-on: windows-latest
+    name: C++ Unit Tests (Google Test)
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+    
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DBUILD_TESTS=ON
+      shell: powershell
+    
+    - name: Build Tests
+      run: |
+        cd build
+        cmake --build . --config Release --target test_game_logic test_player_ids test_controller_management test_game_mechanics
+      shell: powershell
+    
+    - name: Run C++ Tests
+      run: |
+        cd build/tests
+        ctest -C Release --output-on-failure
+      shell: powershell
+    
+    - name: Test Summary
+      if: always()
+      run: |
+        Write-Host '=========================================='
+        Write-Host 'C++ Unit Tests Complete'
+        Write-Host '=========================================='
+      shell: powershell
+
   protocol-tests:
     runs-on: windows-latest
-    name: Protocol Tests (Automated)
+    name: Protocol Tests (Python)
     
     steps:
     - uses: actions/checkout@v3
