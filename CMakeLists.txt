@@ -52,8 +52,11 @@ endif()
 # Build components
 # ============================================================================
 
-# Desktop launcher application
-add_subdirectory(launcher)
+# Desktop launcher application (optional - requires ViGEmClient)
+option(BUILD_LAUNCHER "Build desktop launcher (requires ViGEmClient)" ON)
+if(BUILD_LAUNCHER)
+    add_subdirectory(launcher)
+endif()
 
 # Game server (optional, can be built separately)
 add_subdirectory(server)
