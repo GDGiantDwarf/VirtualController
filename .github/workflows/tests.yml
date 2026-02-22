@@ -29,6 +29,18 @@ jobs:
         cd build
         cmake --build . --config Release --target test_game_logic test_player_ids test_controller_management test_game_mechanics
       shell: powershell
+
+    - name: Build GameServer
+      run: |
+        cd build
+        cmake --build . --config Release --target GameServer
+      shell: powershell
+
+    - name: Upload GameServer
+      uses: actions/upload-artifact@v4
+      with:
+        name: gameserver-release
+        path: build/bin/Release/GameServer.exe
     
     - name: Run C++ Tests
       run: |
@@ -69,32 +81,25 @@ jobs:
         Write-Host 'Protocol Tests Complete'
         Write-Host '=========================================='
       shell: powershell
+
+  networking-tests:
+    needs: cpp-unit-tests
     runs-on: windows-latest
     name: Networking Tests (Integration)
     
     steps:
     - uses: actions/checkout@v3
     
-    - name: Setup MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    
-    - name: Configure CMake
-      run: |
-        mkdir build
-        cd build
-        cmake .. -DBUILD_TESTS=OFF
-      shell: powershell
-    
-    - name: Build GameServer
-      run: |
-        cd build
-        cmake --build . --config Release --target GameServer
-      shell: powershell
+
+    - name: Download GameServer
+      uses: actions/download-artifact@v4
+      with:
+        name: gameserver-release
+        path: build/bin/Release
     
     - name: Start GameServer
       run: |
