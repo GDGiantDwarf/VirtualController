@@ -70,17 +70,18 @@ python debug_proxy.py
 
 ### Automated Tests (GitHub Actions CI)
 
-C++ unit tests and protocol validation run automatically on every push and pull request:
+All tests run automatically on every push and pull request:
 
 ```bash
 # Run locally what CI runs:
 cd build/tests
-ctest -C Release                  # 33 C++ unit tests
+ctest -C Release                      # 33 C++ unit tests
 cd ../..
-python tests\test_protocol.py -v # 36 protocol tests
+python tests\test_protocol.py -v     # 36 protocol tests
+python tests\test_networking.py -v   # 15 networking tests (requires server)
 ```
 
-**CI Status**: All 69 automated tests must pass before merging to main/develop.
+**CI Status**: All 84 automated tests must pass before merging to main/develop.
 
 ### Full Test Suite (Local Testing)
 
