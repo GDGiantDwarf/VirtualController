@@ -125,6 +125,7 @@ private:
     int connectedPlayers{1};
     GameState gameState{LOBBY};
     sf::Font font;
+    std::vector<int> finishOrder;
     
 public:
     KartingGame() : trackSprite(nullptr) {
@@ -178,8 +179,17 @@ public:
                 for (unsigned int x = 0; x < coloredCar.getSize().x; x++) {
                     sf::Color pixel = coloredCar.getPixel({x, y});
 
-                    if (pixel.r > 200 && pixel.g > 200 && pixel.b > 200) {
-                        float brightness = static_cast<float>(pixel.r) / 255.0f;
+                    // Skip fully transparent pixels
+                    if (pixel.a < 128) continue;
+
+                    // Skip grass/dark colored areas
+                    if (pixel.g > 150 && pixel.r < 120 && pixel.b < 120) continue;
+
+                    // Calculate brightness (0-1 range) from pixel
+                    float brightness = (pixel.r + pixel.g + pixel.b) / (3.0f * 255.0f);
+
+                    // Only recolor light pixels (skip very dark areas)
+                    if (brightness > 0.2f) {
                         sf::Color newColor = colors[i];
                         newColor.r = static_cast<unsigned char>(newColor.r * brightness);
                         newColor.g = static_cast<unsigned char>(newColor.g * brightness);
@@ -203,6 +213,7 @@ public:
         playerCount = numPlayers;
         cars.clear();
         carSprites.clear();
+        finishOrder.clear();
 
         // Spawn cars at distributed positions on the track
         // These are approximate safe spots on the track
@@ -293,8 +304,9 @@ public:
 
             checkLapCompletion(car);
 
-            if (car.lapsCompleted >= FINISH_LAPS) {
+            if (car.lapsCompleted >= FINISH_LAPS && !car.finishedRace) {
                 car.finishedRace = true;
+                finishOrder.push_back(car.playerId);
             }
 
             // Update sprite
@@ -380,18 +392,25 @@ public:
             window.draw(*sprite);
         }
 
-        // Draw HUD
-        sf::Text hud(font);
-        std::ostringstream oss;
-        if (!cars.empty()) {
-            int displayLaps = std::min(cars[0].lapsCompleted, LAP_GOAL);
-            oss << "Player 1 Laps: " << displayLaps << "/" << LAP_GOAL;
+        // Draw HUD - one line per player
+        sf::Color playerColors[4] = {
+            sf::Color::Red,
+            sf::Color::Blue,
+            sf::Color::Yellow,
+            sf::Color::Magenta
+        };
+
+        for (size_t i = 0; i < cars.size(); i++) {
+            sf::Text playerHud(font);
+            std::ostringstream oss;
+            int displayLaps = std::min(cars[i].lapsCompleted, LAP_GOAL);
+            oss << "P" << (i + 1) << ": " << displayLaps << "/" << LAP_GOAL;
+            playerHud.setString(oss.str());
+            playerHud.setCharacterSize(16);
+            playerHud.setFillColor(playerColors[i % 4]);
+            playerHud.setPosition({10.0f, 10.0f + (i * 20.0f)});
+            window.draw(playerHud);
         }
-        hud.setString(oss.str());
-        hud.setCharacterSize(16);
-        hud.setFillColor(sf::Color::White);
-        hud.setPosition({10.0f, 10.0f});
-        window.draw(hud);
 
         window.display();
     }
@@ -454,19 +473,22 @@ public:
             sf::Color::Magenta
         };
 
-        std::ostringstream oss;
-        oss << "\nFinal Results:\n\n";
-        for (size_t i = 0; i < cars.size(); i++) {
-            int displayLaps = std::max(0, cars[i].lapsCompleted - 1);
-            oss << "Player " << (i + 1) << ": " << displayLaps << " laps completed\n";
-        }
+        std::string placeBadges[] = {"1st", "2nd", "3rd", "4th"};
 
-        sf::Text results(font);
-        results.setString(oss.str());
-        results.setCharacterSize(20);
-        results.setFillColor(sf::Color::White);
-        results.setPosition({100.0f, 150.0f});
-        window.draw(results);
+        float leaderboardStartY = 150.0f;
+        float lineHeight = 50.0f;
+
+        for (size_t i = 0; i < finishOrder.size(); i++) {
+            sf::Text placeText(font);
+            std::ostringstream oss;
+            int playerIdx = finishOrder[i];
+            oss << placeBadges[i] << " - Player " << (playerIdx + 1);
+            placeText.setString(oss.str());
+            placeText.setCharacterSize(28);
+            placeText.setFillColor(playerColors[playerIdx % 4]);
+            placeText.setPosition({100.0f, leaderboardStartY + (i * lineHeight)});
+            window.draw(placeText);
+        }
 
         sf::Text restart(font);
         restart.setString("Press SPACE to return to lobby");
