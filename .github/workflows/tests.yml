@@ -21,29 +21,20 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: '6.7.0'
-        host: 'windows'
-        target: 'desktop'
         arch: 'win64_msvc2019_64'
         modules: 'qtwebsockets'
-        cache: 'true'
     
     - name: Configure CMake
       run: |
         mkdir build
         cd build
-        cmake .. -DBUILD_TESTS=ON
+        cmake .. -DCMAKE_PREFIX_PATH="$env:Qt6_DIR" -DBUILD_TESTS=ON -DBUILD_GAMES=OFF
       shell: powershell
     
-    - name: Build Tests
+    - name: Build
       run: |
         cd build
-        cmake --build . --config Release --target test_game_logic test_player_ids test_controller_management test_game_mechanics test_karting_mechanics
-      shell: powershell
-
-    - name: Build GameServer
-      run: |
-        cd build
-        cmake --build . --config Release --target GameServer
+        cmake --build . --config Release
       shell: powershell
 
     - name: Upload GameServer

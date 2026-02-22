@@ -58,11 +58,12 @@ add_subdirectory(launcher)
 # Game server (optional, can be built separately)
 add_subdirectory(server)
 
-# Snake game
-add_subdirectory(games/snake)
-
-# Karting game
-add_subdirectory(games/karting)
+# Games (optional - requires SFML)
+option(BUILD_GAMES "Build game clients (requires SFML)" ON)
+if(BUILD_GAMES)
+    add_subdirectory(games/snake)
+    add_subdirectory(games/karting)
+endif()
 
 # C++ Unit Tests (Google Test)
 option(BUILD_TESTS "Build unit tests" ON)
