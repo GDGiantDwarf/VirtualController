@@ -695,6 +695,7 @@ int main(int argc, char* argv[]) {
     std::array<Direction, MAX_PLAYERS> lastInputs{};
     lastInputs.fill(Direction::Right);
     sf::Clock inputClock;
+    sf::Clock controllerCheckClock;
     
     // Send connect message with controller count
     int controllerCount = InputAdapter::countConnectedControllers();
@@ -709,6 +710,17 @@ int main(int argc, char* argv[]) {
     bool startButtonClicked = false;
     
     while (window.isOpen()) {
+        // Check for controller hotplug/unplug every 500ms
+        if (controllerCheckClock.getElapsedTime().asMilliseconds() > 500) {
+            int newControllerCount = InputAdapter::countConnectedControllers();
+            if (newControllerCount != controllerCount) {
+                std::cout << "Controller count changed: " << controllerCount << " -> " << newControllerCount << std::endl;
+                controllerCount = newControllerCount;
+                client.sendConnect(controllerCount);
+                std::cout << "Sent CONNECT message with " << controllerCount << " controller(s)" << std::endl;
+            }
+            controllerCheckClock.restart();
+        }
         // Handle events
         while (auto e = window.pollEvent()) {
             if (e->is<sf::Event::Closed>()) {

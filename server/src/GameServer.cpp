@@ -328,11 +328,17 @@ void GameServer::handleClientMessages() {
                 /**
                  * New client connected or reconnected.
                  * Update controller count and recalculate all IDs.
+                 * Also recalculates if controller count changed (controller added/removed).
                  */
+                int oldControllerCount = conn->getControllerCount();
                 conn->setControllerCount(msg.controllerCount);
                 
-                // Recalculate IDs for all connections (only if game not active)
+                // Recalculate IDs if controller count changed or if this is a new connection (only if game not active)
                 if (!m_gameLogic.isGameActive()) {
+                    if (msg.controllerCount != oldControllerCount) {
+                        std::cout << "Connection " << conn->getId() << " controller count changed: " 
+                                  << oldControllerCount << " -> " << msg.controllerCount << std::endl;
+                    }
                     recalculatePlayerIds();
                     std::cout << "Total players ready: " << getTotalControllerCount() << std::endl;
                 }
