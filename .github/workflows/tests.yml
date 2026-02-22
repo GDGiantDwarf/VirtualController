@@ -17,6 +17,16 @@ jobs:
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
     
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.7.0'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2022_64'
+        modules: 'qtbase qttools'
+        cache: 'true'
+    
     - name: Configure CMake
       run: |
         mkdir build
