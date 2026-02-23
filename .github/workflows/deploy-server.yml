@@ -37,7 +37,8 @@ jobs:
             # Rebuild and restart snake if changed
             if [ "${{ steps.changes.outputs.snake }}" == "true" ]; then
               echo "Rebuilding snake server..."
-              cd /opt/VirtualController/server/snake/build
+              cd /opt/VirtualController/server/snake/
+              mkdir -p build && cd build
               cmake ..
               make -j$(nproc)
               sudo systemctl restart snake-server
@@ -46,7 +47,8 @@ jobs:
             # Rebuild and restart karting if changed
             if [ "${{ steps.changes.outputs.karting }}" == "true" ]; then
               echo "Rebuilding karting server..."
-              cd /opt/VirtualController/server/karting/build
+              cd /opt/VirtualController/server/karting/
+              mkdir -p build && cd build
               cmake ..
               make -j$(nproc)
               sudo systemctl restart karting-server
