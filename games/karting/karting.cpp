@@ -693,7 +693,7 @@ private:
 
 int main(int argc, char* argv[]) {
     std::string serverHost = "127.0.0.1";
-    int serverPort = 8765;
+    int serverPort = 8766;
     
     // Parse command line arguments
     if (argc > 1) serverHost = argv[1];
