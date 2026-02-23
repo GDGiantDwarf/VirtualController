@@ -41,7 +41,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: gameserver-release
-        path: build/bin/Release/GameServer.exe
+        path: build/bin/Release/SnakeGameServer.exe
     
     - name: Run C++ Tests
       run: |
@@ -104,7 +104,7 @@ jobs:
     
     - name: Start GameServer
       run: |
-        Start-Process -FilePath "${{ github.workspace }}\build\bin\Release\GameServer.exe" -WindowStyle Hidden
+        Start-Process -FilePath "${{ github.workspace }}\build\bin\Release\SnakeGameServer.exe" -WindowStyle Hidden
         Start-Sleep -Seconds 2
       shell: powershell
     
@@ -117,7 +117,7 @@ jobs:
     - name: Stop GameServer
       if: always()
       run: |
-        Stop-Process -Name GameServer -Force -ErrorAction SilentlyContinue
+        Stop-Process -Name SnakeGameServer -Force -ErrorAction SilentlyContinue
       shell: powershell
     
     - name: Test Summary
