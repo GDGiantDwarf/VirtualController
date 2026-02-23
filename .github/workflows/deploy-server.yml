@@ -1,33 +1,53 @@
-name: Deploy Server to OVH VPS
+name: Deploy Servers to OVH VPS
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'server/**'  # Only trigger when server folder changes
+      - 'server/**'  # Trigger on any server change
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need history to detect changes
+      
+      - name: Detect changed servers
+        id: changes
+        run: |
+          echo "snake=$(git diff --name-only HEAD~1 HEAD | grep -q 'server/snake/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "karting=$(git diff --name-only HEAD~1 HEAD | grep -q 'server/karting/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+      
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}  # Usually 22
+          port: ${{ secrets.VPS_PORT }}
           script: |
-            cd /opt/VirtualController  # Change this to your actual path on VPS
+            cd /opt/VirtualController
             git pull origin main
             
-            # Build the server (adjust based on your build process)
-            cd server
-            mkdir -p build && cd build
-            cmake ..
-            make -j$(nproc)
+            # Rebuild and restart snake if changed
+            if [ "${{ steps.changes.outputs.snake }}" == "true" ]; then
+              echo "Rebuilding snake server..."
+              cd /opt/VirtualController/server/snake/build
+              cmake ..
+              make -j$(nproc)
+              sudo systemctl restart snake-server
+            fi
             
-            # Restart the server service
-            sudo systemctl restart virtualcontroller-server
+            # Rebuild and restart karting if changed
+            if [ "${{ steps.changes.outputs.karting }}" == "true" ]; then
+              echo "Rebuilding karting server..."
+              cd /opt/VirtualController/server/karting/build
+              cmake ..
+              make -j$(nproc)
+              sudo systemctl restart karting-server
+            fi
