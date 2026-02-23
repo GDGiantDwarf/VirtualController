@@ -10,6 +10,8 @@ find_package(SFML 3.0 COMPONENTS Graphics QUIET)
 if(NOT SFML_FOUND)
     message(WARNING "SFML not found. Karting server needs SFML for track collision detection.")
     message(WARNING "Please install SFML 3.0 or set SFML_DIR to SFML's CMake config location.")
+    message(WARNING "Skipping KartingGameServer target because SFML is required.")
+    return()
 endif()
 
 # Find nlohmann/json (optional, fallback to manual JSON parsing)
