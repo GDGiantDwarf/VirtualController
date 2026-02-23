@@ -49,7 +49,7 @@ jobs:
               echo "Rebuilding karting server..."
               cd /opt/VirtualController/server/karting/
               mkdir -p build && cd build
-              cmake ..
+              cmake .. -DSFML_DIR=/usr/local/lib/cmake/SFML -DSFML_STATIC_LIBRARIES=ON
               make -j$(nproc)
               sudo systemctl restart karting-server
             fi
