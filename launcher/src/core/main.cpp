@@ -18,17 +18,20 @@ int main(int argc, char *argv[]) {
     // Default server target
     QString serverHost = "127.0.0.1";
     int serverPort = 8765;
+    bool hasCliArgs = false;
     
     // Parse optional CLI args: <host> <port>
     const QStringList args = app.arguments();
     if (args.size() > 1) {
         serverHost = args[1];
+        hasCliArgs = true;
     }
     if (args.size() > 2) {
         bool ok = false;
         int parsedPort = args[2].toInt(&ok);
         if (ok && parsedPort > 0) {
             serverPort = parsedPort;
+            hasCliArgs = true;
         }
     }
     
@@ -49,7 +52,7 @@ int main(int argc, char *argv[]) {
     QApplication::setOrganizationName("Student Project");
     
     // Create and show main window
-    MainWindow window(serverHost, serverPort);
+    MainWindow window(serverHost, serverPort, nullptr, hasCliArgs);
     window.show();
     
     int rc = app.exec();

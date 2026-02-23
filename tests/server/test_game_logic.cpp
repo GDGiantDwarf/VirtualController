@@ -5,8 +5,8 @@
  */
 
 #include <gtest/gtest.h>
-#include "../../server/src/GameLogic.h"
-#include "../../server/src/Protocol.h"
+#include "../../server/snake/src/GameLogic.h"
+#include "../../server/snake/src/Protocol.h"
 
 class GameLogicTest : public ::testing::Test {
 protected:

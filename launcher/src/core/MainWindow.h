@@ -11,7 +11,7 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
     
 public:
-    explicit MainWindow(const QString& serverHost = "127.0.0.1", int serverPort = 8765, QWidget* parent = nullptr);
+    explicit MainWindow(const QString& serverHost = "127.0.0.1", int serverPort = 8765, QWidget* parent = nullptr, bool useCliArgs = false);
     ~MainWindow();
     
 protected:
@@ -26,6 +26,7 @@ private:
     ControllerTab* controllerTab;
     QString serverHost;
     int serverPort;
+    bool useCliArgs;
     WebSocketTab* webSocketTab;
 };
 

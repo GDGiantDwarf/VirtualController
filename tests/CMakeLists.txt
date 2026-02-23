@@ -33,7 +33,7 @@ enable_testing()
 # Test: Game Logic
 add_executable(test_game_logic
     server/test_game_logic.cpp
-    ../server/src/GameLogic.cpp
+    ../server/snake/src/GameLogic.cpp
 )
 target_include_directories(test_game_logic PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/..

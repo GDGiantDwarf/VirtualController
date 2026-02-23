@@ -8,10 +8,11 @@
 #include <QMessageBox>
 #include <cstdlib>
 
-MainWindow::MainWindow(const QString& serverHostIn, int serverPortIn, QWidget* parent)
+MainWindow::MainWindow(const QString& serverHostIn, int serverPortIn, QWidget* parent, bool useCliArgsIn)
     : QMainWindow(parent)
     , serverHost(serverHostIn)
     , serverPort(serverPortIn)
+    , useCliArgs(useCliArgsIn)
 {
     setAttribute(Qt::WA_QuitOnClose, true);
     setupUI();
@@ -35,7 +36,7 @@ void MainWindow::setupUI() {
     
     // Create and add tabs
     controllerTab = new ControllerTab(this);
-    libraryTab = new GameLibraryTab(this, serverHost, serverPort);
+    libraryTab = new GameLibraryTab(this, serverHost, serverPort, useCliArgs);
     webSocketTab = new WebSocketTab(this);
     
     tabWidget->addTab(controllerTab, "🎮 Local Controllers");

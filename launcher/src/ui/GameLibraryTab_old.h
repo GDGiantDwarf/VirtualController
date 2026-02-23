@@ -20,7 +20,7 @@ class GameLibraryTab : public QWidget {
     Q_OBJECT
     
 public:
-    explicit GameLibraryTab(QWidget* parent = nullptr, const QString& serverHost = "127.0.0.1", int serverPort = 8765, bool useCliArgs = true);
+    explicit GameLibraryTab(QWidget* parent = nullptr, const QString& serverHost = "127.0.0.1", int serverPort = 8765);
     
 private slots:
     void onGameClicked(QListWidgetItem* item);
@@ -30,8 +30,6 @@ private:
     void setupUI();
     void loadGames();
     void launchGame(const GameInfo& game);
-    void loadGameConfigs();
-    GameConfig getGameConfig(const QString& gameName) const;
     
     QListWidget* gamesList;
     QPushButton* refreshButton;
@@ -39,8 +37,6 @@ private:
     QVector<GameInfo> games;
     QString serverHost;
     int serverPort;
-    bool useCliArgs;
-    QMap<QString, GameConfig> gameConfigs;
 };
 
 #endif // GAMELIBRARYTAB_H
