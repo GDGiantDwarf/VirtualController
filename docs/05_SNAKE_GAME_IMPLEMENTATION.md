@@ -2,6 +2,8 @@
 
 Detailed walkthrough of how the Snake game is implemented using the VirtualController framework.
 
+**See also**: [Karting Game Implementation](06_KARTING_GAME_IMPLEMENTATION.md) for a continuous-physics racing game example.
+
 ## Overview
 
 Snake is a grid-based, turn-by-turn multiplayer game where up to 4 players compete to eat food while avoiding obstacles.

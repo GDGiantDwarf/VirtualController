@@ -424,4 +424,4 @@ class GameLogic {
 - Connection disconnect: Player IDs freed unexpectedly
 - Duplicate player IDs: Server state corruption
 
-See [Debugging & Testing](08_DEBUGGING_AND_TESTING.md) for network monitoring.
+See [Debugging & Testing](09_DEBUGGING_AND_TESTING.md) for network monitoring.

@@ -34,20 +34,26 @@ This documentation covers the entire VirtualController project, a multi-player v
    - Game state machine (LOBBY → ACTIVE → ENDED)
    - Starting positions and player colors
 
-### 6. **[Adding New Games](06_ADDING_NEW_GAMES.md)**
+### 6. **[Karting Game Implementation](06_KARTING_GAME_IMPLEMENTATION.md)**
+   - Karting game mechanics and physics
+   - Client architecture (rendering, input, networking)
+   - Game state machine (LOBBY → ACTIVE → ENDED)
+   - Starting positions and player colors
+
+### 7. **[Adding New Games](07_ADDING_NEW_GAMES.md)**
    - Game template and structure
    - Networking client integration
    - Building and compilation
    - Icon requirements
    - Testing with multiple players
 
-### 7. **[Build System](07_BUILD_SYSTEM.md)**
+### 8. **[Build System](08_BUILD_SYSTEM.md)**
    - CMake configuration
    - Unified build directory structure
    - Build commands for each component
    - Dependencies and compilation flags
 
-### 8. **[Debugging & Testing](08_DEBUGGING_AND_TESTING.md)**
+### 9. **[Debugging & Testing](09_DEBUGGING_AND_TESTING.md)**
    - Debug proxy for network monitoring
    - Testing multi-platform connections
    - Common issues and solutions
@@ -55,7 +61,7 @@ This documentation covers the entire VirtualController project, a multi-player v
 
 ## Quick Navigation
 
-- **Just want to add a game?** → Start with [Adding New Games](06_ADDING_NEW_GAMES.md)
+- **Just want to add a game?** → Start with [Adding New Games](07_ADDING_NEW_GAMES.md)
 - **Working on the server?** → See [Server & Networking](02_SERVER_AND_NETWORKING.md)
 - **Improving the launcher?** → Check [Launcher & Game Discovery](04_LAUNCHER_AND_DISCOVERY.md)
 - **Understanding the system?** → Read [Core Architecture](01_CORE_ARCHITECTURE.md) first

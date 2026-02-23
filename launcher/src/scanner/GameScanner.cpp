@@ -18,8 +18,8 @@ QVector<GameInfo> GameScanner::scanGames(const QString& gamesDirectory) {
     for (const QString& exeFile : exeFiles) {
         QString gameName = exeFile.left(exeFile.length() - 4); // Remove .exe extension
         
-        // Skip the launcher itself and server
-        if (gameName == "GameLibraryLauncher" || gameName == "GameServer") {
+        // Skip the launcher itself and all servers
+        if (gameName == "GameLibraryLauncher" || gameName == "GameServer" || gameName.endsWith("GameServer")) {
             continue;
         }
         

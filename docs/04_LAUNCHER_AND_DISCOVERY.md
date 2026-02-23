@@ -31,6 +31,8 @@ build/bin/Release/
 ├── GameServer.exe               ← excluded
 ├── snake.exe                    ← found!
 ├── snake.ico                    ← matched and loaded
+├── karting.exe                  ← found!
+├── karting.ico                  ← matched and loaded
 ├── mygame.exe                   ← would be found
 └── mygame.ico                   ← would be matched
 ```
@@ -94,6 +96,7 @@ Note: GameInfo stores only basic metadata. It does NOT contain runtime informati
 For each .exe file, scanner looks for matching .ico:
 
 - `snake.exe` → looks for `snake.ico`
+- `karting.exe` → looks for `karting.ico`
 - `mygame.exe` → looks for `mygame.ico`
 
 Icons are:
@@ -399,7 +402,7 @@ launcher/
 
 ### Step 1: Create Game Executable
 
-Compile your game (see [Adding New Games](06_ADDING_NEW_GAMES.md)):
+Compile your game (see [Adding New Games](07_ADDING_NEW_GAMES.md)):
 
 ```bash
 cmake --build build --config Release --target my_game
@@ -545,4 +548,4 @@ connect(gamesList, &QListWidget::itemClicked, this,
 
 - See [Core Architecture](01_CORE_ARCHITECTURE.md) for system overview
 - See [Game Protocol](03_GAME_PROTOCOL.md) for communication details
-- See [Adding New Games](06_ADDING_NEW_GAMES.md) for game development
+- See [Adding New Games](07_ADDING_NEW_GAMES.md) for game development

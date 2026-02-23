@@ -455,14 +455,25 @@ See [Game Protocol Specification](03_GAME_PROTOCOL.md) for details.
 
 ## Example Games to Study
 
-**Snake** - 800 lines, complete reference implementation
+**Reference implementations** are available to learn from:
+
+### Snake - 800 lines, turn-based game
 - Single-file structure
-- NetworkClient class
-- InputAdapter (keyboard + joystick)
-- Renderer with three screens (lobby/game/end)
+- Discrete direction input (4 choices)
+- Network client sends input on change only
+- Server tick rate: 120ms (8.3 updates/sec)
+- Grid-based collision detection
 - Multi-player tested
 
-Extend Snake or copy-paste structure for new game.
+### Karting - 900 lines, continuous-physics game  
+- Single-file structure
+- Analog input (throttle + steer, -1..1 range)
+- Network client sends input continuously
+- Server tick rate: 30ms (33 updates/sec)
+- Pixel-based collision detection
+- Multi-player tested
+
+Extend either implementation or copy-paste their structure for your new game. Choose Snake as model for turn-based games, or Karting for real-time physics games.
 
 ## Performance Targets
 

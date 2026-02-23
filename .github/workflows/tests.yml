@@ -17,18 +17,31 @@ jobs:
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
     
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.7.0'
+        arch: 'win64_msvc2019_64'
+        modules: 'qtwebsockets'
+    
     - name: Configure CMake
       run: |
         mkdir build
         cd build
-        cmake .. -DBUILD_TESTS=ON
+        cmake .. -DCMAKE_PREFIX_PATH="$env:Qt6_DIR" -DBUILD_TESTS=ON -DBUILD_GAMES=OFF -DBUILD_LAUNCHER=OFF
       shell: powershell
     
-    - name: Build Tests
+    - name: Build
       run: |
         cd build
-        cmake --build . --config Release --target test_game_logic test_player_ids test_controller_management test_game_mechanics
+        cmake --build . --config Release
       shell: powershell
+
+    - name: Upload GameServer
+      uses: actions/upload-artifact@v4
+      with:
+        name: gameserver-release
+        path: build/bin/Release/SnakeGameServer.exe
     
     - name: Run C++ Tests
       run: |
@@ -69,36 +82,29 @@ jobs:
         Write-Host 'Protocol Tests Complete'
         Write-Host '=========================================='
       shell: powershell
+
+  networking-tests:
+    needs: cpp-unit-tests
     runs-on: windows-latest
     name: Networking Tests (Integration)
     
     steps:
     - uses: actions/checkout@v3
     
-    - name: Setup MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    
-    - name: Configure CMake
-      run: |
-        mkdir build
-        cd build
-        cmake .. -DBUILD_TESTS=OFF
-      shell: powershell
-    
-    - name: Build GameServer
-      run: |
-        cd build
-        cmake --build . --config Release --target GameServer
-      shell: powershell
+
+    - name: Download GameServer
+      uses: actions/download-artifact@v4
+      with:
+        name: gameserver-release
+        path: build/bin/Release
     
     - name: Start GameServer
       run: |
-        Start-Process -FilePath "${{ github.workspace }}\build\bin\Release\GameServer.exe" -WindowStyle Hidden
+        Start-Process -FilePath "${{ github.workspace }}\build\bin\Release\SnakeGameServer.exe" -WindowStyle Hidden
         Start-Sleep -Seconds 2
       shell: powershell
     
@@ -111,7 +117,7 @@ jobs:
     - name: Stop GameServer
       if: always()
       run: |
-        Stop-Process -Name GameServer -Force -ErrorAction SilentlyContinue
+        Stop-Process -Name SnakeGameServer -Force -ErrorAction SilentlyContinue
       shell: powershell
     
     - name: Test Summary

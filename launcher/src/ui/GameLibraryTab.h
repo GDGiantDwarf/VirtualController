@@ -6,14 +6,21 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QProcess>
+#include <QMap>
+#include <QJsonDocument>
 #include "GameInfo.h"
 #include "GameScanner.h"
+
+struct GameConfig {
+    QString host;
+    int port;
+};
 
 class GameLibraryTab : public QWidget {
     Q_OBJECT
     
 public:
-    explicit GameLibraryTab(QWidget* parent = nullptr, const QString& serverHost = "127.0.0.1", int serverPort = 8765);
+    explicit GameLibraryTab(QWidget* parent = nullptr, const QString& serverHost = "127.0.0.1", int serverPort = 8765, bool useCliArgs = true);
     
 private slots:
     void onGameClicked(QListWidgetItem* item);
@@ -23,6 +30,8 @@ private:
     void setupUI();
     void loadGames();
     void launchGame(const GameInfo& game);
+    void loadGameConfigs();
+    GameConfig getGameConfig(const QString& gameName) const;
     
     QListWidget* gamesList;
     QPushButton* refreshButton;
@@ -30,6 +39,8 @@ private:
     QVector<GameInfo> games;
     QString serverHost;
     int serverPort;
+    bool useCliArgs;
+    QMap<QString, GameConfig> gameConfigs;
 };
 
 #endif // GAMELIBRARYTAB_H

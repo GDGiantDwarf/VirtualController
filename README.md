@@ -6,7 +6,7 @@ Multi-player virtual controller system using ViGEmBus for Windows with client-se
 
 - **Launcher** (`launcher/`) - Qt6 game launcher with local controller management (ViGEm)
 - **Server** (`server/`) - TCP game server for multiplayer logic
-- **Games** (`games/snake/`) - Networked game clients (SFML)
+- **Games** (`games/snake/`, `games/karting/`) - Networked game clients (SFML)
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ Multi-player virtual controller system using ViGEmBus for Windows with client-se
 To build the project, run `build.bat` from the **root directory only**:
 
 ```bash
-# Build everything (launcher, server, snake, and tests)
+# Build everything (launcher, server, all games, and tests)
 build.bat
 
 # Build without tests (faster for development)
@@ -40,6 +40,7 @@ New to VirtualController? Start here:
 
 - **[General User Guide (PDF)](General%20User%20Guide.pdf)** - How to use the system with any game and any number of players
 - **[Snake Game User Guide (PDF)](Snake%20Game%20User%20Guide.pdf)** - Specific guide to playing the Snake game
+- **[Karting Game User Guide (PDF)](Karting%20Game%20User%20Guide.pdf)** - Specific guide to playing the Karting game
 
 ## Running the Application
 
@@ -53,6 +54,9 @@ New to VirtualController? Start here:
 # Launch Snake from the launcher UI (recommended)
 # Or run directly:
 .\build\bin\Release\snake.exe 127.0.0.1 8765
+
+# Or play Karting:
+.\build\bin\Release\karting.exe 127.0.0.1 8765
 ```
 
 ## Debug Proxy (Optional)
@@ -88,7 +92,7 @@ python tests\test_networking.py -v   # 15 networking tests (requires server)
 For complete testing including C++ unit tests and network functionality:
 
 ```bash
-# C++ unit tests (33 tests - server, launcher, snake logic)
+# C++ unit tests (33+ tests - server, launcher, all game logic)
 cd build\tests
 ctest -C Release
 
@@ -101,7 +105,7 @@ python tests\test_networking.py -v    # 15 networking tests (requires server)
 - C++ unit tests: 33 (GameLogic, PlayerIds, ControllerManagement, GameMechanics)
 - Python tests: 51 (36 protocol + 15 networking)
 
-See [tests/README.md](tests/README.md) for detailed test documentation, [Testing Policy](docs/TESTING_POLICY.md) for testing strategy, and [Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md) for procedures.
+See [tests/README.md](tests/README.md) for detailed test documentation, [Testing Policy](docs/TESTING_POLICY.md) for testing strategy, and [Debugging & Testing](docs/09_DEBUGGING_AND_TESTING.md) for procedures.
 
 ## Architecture
 
@@ -110,13 +114,15 @@ See [tests/README.md](tests/README.md) for detailed test documentation, [Testing
 ```
 VirtualController/
 ├── build/             # Unified build output (all executables here)
-│   └── bin/Release/   # GameLibraryLauncher.exe, GameServer.exe, snake.exe
+│   └── bin/Release/   # GameLibraryLauncher.exe, GameServer.exe, snake.exe, karting.exe
 ├── launcher/          # Qt6 launcher + ViGEm controller manager
 │   └── src/
 ├── server/            # TCP game server
-│   └── src/
-└── games/snake/       # SFML networked game client
-    └── snake.cpp
+│   ├── snake/          # Snake game server logic
+│   └── karting/        # Karting game server logic
+└── games/             # Game implementations
+    ├── snake/          # SFML networked Snake game client
+    └── karting/        # SFML networked Karting game client
 ```
 
 **Note:** Individual component folders (launcher/, server/, games/) should NOT contain build/ directories. All builds use the root `build/` directory.
@@ -147,10 +153,11 @@ Comprehensive technical documentation is available in the `docs/` directory:
 - **[Server & Networking](docs/02_SERVER_AND_NETWORKING.md)** - Server implementation details
 - **[Game Protocol](docs/03_GAME_PROTOCOL.md)** - JSON message specification
 - **[Launcher & Discovery](docs/04_LAUNCHER_AND_DISCOVERY.md)** - Game launcher details
-- **[Snake Game Implementation](docs/05_SNAKE_GAME_IMPLEMENTATION.md)** - Reference game walkthrough
-- **[Adding New Games](docs/06_ADDING_NEW_GAMES.md)** - Step-by-step development guide
-- **[Build System](docs/07_BUILD_SYSTEM.md)** - CMake configuration and compilation
-- **[Debugging & Testing](docs/08_DEBUGGING_AND_TESTING.md)** - Testing scenarios and troubleshooting
+- **[Snake Game Implementation](docs/05_SNAKE_GAME_IMPLEMENTATION.md)** - Reference game #1 walkthrough
+- **[Karting Game Implementation](docs/06_KARTING_GAME_IMPLEMENTATION.md)** - Reference game #2 walkthrough
+- **[Adding New Games](docs/07_ADDING_NEW_GAMES.md)** - Step-by-step development guide
+- **[Build System](docs/08_BUILD_SYSTEM.md)** - CMake configuration and compilation
+- **[Debugging & Testing](docs/09_DEBUGGING_AND_TESTING.md)** - Testing scenarios and troubleshooting
 - **[Testing Policy](docs/Testing%20Policy.pdf)** - Testing strategy, frameworks, and test types
 
 ## Development
@@ -166,7 +173,7 @@ games/
     └── CMakeLists.txt         # Build configuration
 ```
 
-See [Adding New Games](docs/06_ADDING_NEW_GAMES.md) for complete instructions.
+See [Adding New Games](docs/07_ADDING_NEW_GAMES.md) for complete instructions.
 
 The launcher's GameScanner automatically discovers games in the build output directory (`build/bin/Release/`).
 It will only detect games whose .exe file matches the game name.

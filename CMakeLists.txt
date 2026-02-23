@@ -52,14 +52,21 @@ endif()
 # Build components
 # ============================================================================
 
-# Desktop launcher application
-add_subdirectory(launcher)
+# Desktop launcher application (optional - requires ViGEmClient)
+option(BUILD_LAUNCHER "Build desktop launcher (requires ViGEmClient)" ON)
+if(BUILD_LAUNCHER)
+    add_subdirectory(launcher)
+endif()
 
 # Game server (optional, can be built separately)
 add_subdirectory(server)
 
-# Snake game
-add_subdirectory(games/snake)
+# Games (optional - requires SFML)
+option(BUILD_GAMES "Build game clients (requires SFML)" ON)
+if(BUILD_GAMES)
+    add_subdirectory(games/snake)
+    add_subdirectory(games/karting)
+endif()
 
 # C++ Unit Tests (Google Test)
 option(BUILD_TESTS "Build unit tests" ON)
@@ -76,6 +83,7 @@ message(STATUS "Components:")
 message(STATUS "  - Desktop Launcher (Qt6)  : launcher/")
 message(STATUS "  - Game Server (TCP)        : server/")
 message(STATUS "  - Snake Game Client (SFML) : games/snake/")
+message(STATUS "  - Karting Game Client (SFML) : games/karting/")
 message(STATUS "  - Mobile Controller       : mobile_controller/")
 if(BUILD_TESTS)
     message(STATUS "  - C++ Unit Tests (GTest)  : tests/")

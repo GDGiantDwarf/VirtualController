@@ -33,7 +33,7 @@ enable_testing()
 # Test: Game Logic
 add_executable(test_game_logic
     server/test_game_logic.cpp
-    ../server/src/GameLogic.cpp
+    ../server/snake/src/GameLogic.cpp
 )
 target_include_directories(test_game_logic PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/..
@@ -88,6 +88,22 @@ target_link_libraries(test_game_mechanics PRIVATE
 add_test(NAME GameMechanicsTest COMMAND test_game_mechanics)
 
 # ============================================================================
+# Karting Game Tests
+# ============================================================================
+
+# Test: Karting Mechanics (pure logic, no SFML required)
+add_executable(test_karting_mechanics
+    karting/test_karting_mechanics.cpp
+)
+target_include_directories(test_karting_mechanics PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_link_libraries(test_karting_mechanics PRIVATE
+    GTest::gtest_main
+)
+add_test(NAME KartingMechanicsTest COMMAND test_karting_mechanics)
+
+# ============================================================================
 # Summary
 # ============================================================================
 
@@ -95,5 +111,6 @@ message(STATUS "C++ Unit Tests configured:")
 message(STATUS "  - Server: GameLogic, PlayerIds")
 message(STATUS "  - Launcher: ControllerManagement")
 message(STATUS "  - Snake: GameMechanics")
+message(STATUS "  - Karting: KartingMechanics")
 message(STATUS "")
 message(STATUS "Run tests with: ctest --test-dir build/tests")

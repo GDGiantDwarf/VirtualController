@@ -171,3 +171,10 @@ message(STATUS "Qt6 Version: ${Qt6_VERSION}")
 message(STATUS "ViGEmClient: ${VIGEM_INCLUDE_DIR}")
 message(STATUS "Output: ${CMAKE_BINARY_DIR}/bin")
 message(STATUS "=========================================")
+# Copy config file
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/games_config.json"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/games_config.json"
+    COMMENT "Copying games_config.json to output directory"
+)
