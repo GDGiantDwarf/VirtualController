@@ -18,7 +18,7 @@
  */
 class GameServer {
 public:
-    static constexpr int DEFAULT_PORT = 8765;
+    static constexpr int DEFAULT_PORT = 8766;
     static constexpr float TICK_RATE = 0.03f; // 30ms per game tick (~33 Hz)
     
     GameServer(int port = DEFAULT_PORT);
