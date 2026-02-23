@@ -6,7 +6,7 @@ VirtualController is a distributed multiplayer gaming system consisting of:
 
 1. **Game Server** - Centralized game logic and state management
 2. **Game Launcher** - User interface for discovering and launching games
-3. **Game Clients** - Networked game implementations (e.g., Snake)
+3. **Game Clients** - Networked game implementations (e.g., Snake, Karting)
 
 ```
                           ┌─────────────────┐
@@ -18,7 +18,8 @@ VirtualController is a distributed multiplayer gaming system consisting of:
                     ▼              ▼              ▼
               ┌──────────┐   ┌──────────┐   ┌──────────┐
               │ Client 1 │   │ Client 2 │   │ Client 3 │
-              │ (Snake)  │   │ (Snake)  │   │ (Snake)  │
+              │ (Snake/  │   │ (Snake/  │   │ (Snake/  │
+              │ Karting) │   │ Karting) │   │ Karting) │
               └──────────┘   └──────────┘   └──────────┘
                     │              │              │
               ┌─────▼─────┐  ┌─────▼─────┐  ┌─────▼─────┐
@@ -66,6 +67,8 @@ VirtualController/
 │       ├── GameServer.exe           # Game server
 │       ├── snake.exe                # Snake game client
 │       ├── snake.ico                # Game icon
+│       ├── karting.exe              # Karting game client
+│       ├── karting.ico              # Game icon
 │       └── [DLLs and libraries]     # Qt, SFML, system DLLs
 │
 ├── launcher/                        # Game launcher application
@@ -83,9 +86,13 @@ VirtualController/
 │       └── Protocol.h               # Shared protocol definitions
 │
 ├── games/                           # Game source directories
-│   └── snake/
-│       ├── snake.cpp                # Snake game implementation
-│       ├── snake.ico                # Game icon (copied to build)
+│   ├── snake/
+│   │   ├── snake.cpp                # Snake game implementation
+│   │   ├── snake.ico                # Game icon (copied to build)
+│   │   └── CMakeLists.txt
+│   └── karting/
+│       ├── karting.cpp              # Karting game implementation
+│       ├── karting.ico              # Game icon (copied to build)
 │       └── CMakeLists.txt           # Build configuration
 │
 ├── CMakeLists.txt                   # Root CMake configuration
@@ -193,7 +200,7 @@ When PC2 sends INPUT with `playerId=1`, server converts it to global `playerId=3
 - Implement game client in C++17 + SFML
 - Use provided protocol/networking code
 - Follow naming conventions (folder name must match .exe name)
-- See [Adding New Games](06_ADDING_NEW_GAMES.md)
+- See [Adding New Games](07_ADDING_NEW_GAMES.md)
 
 ### Extending Server
 - Modify GameLogic for new game mechanics
@@ -210,7 +217,7 @@ When PC2 sends INPUT with `playerId=1`, server converts it to global `playerId=3
 - Network monitoring
 - Performance profiling
 - Statistics/reporting
-- See [Debugging & Testing](08_DEBUGGING_AND_TESTING.md)
+- See [Debugging & Testing](09_DEBUGGING_AND_TESTING.md)
 
 ## Performance Characteristics
 
@@ -252,6 +259,6 @@ When PC2 sends INPUT with `playerId=1`, server converts it to global `playerId=3
 ## Next Steps
 
 - **New to project?** Read [Launcher & Game Discovery](04_LAUNCHER_AND_DISCOVERY.md)
-- **Want to add a game?** See [Adding New Games](06_ADDING_NEW_GAMES.md)
+- **Want to add a game?** See [Adding New Games](07_ADDING_NEW_GAMES.md)
 - **Diving into code?** Check [Server & Networking](02_SERVER_AND_NETWORKING.md)
 - **Need protocol details?** Reference [Game Protocol Specification](03_GAME_PROTOCOL.md)

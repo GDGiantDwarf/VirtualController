@@ -210,7 +210,7 @@ set_target_properties(GameServer PROPERTIES
 
 ### Snake Game
 
-**Location**: `games/snake/CMakeLists.txt`
+**Location**: `games/snake/CMakeLists.txt` and `server/snake/CMakeLists.txt`
 
 ```cmake
 cmake_minimum_required(VERSION 3.16)
@@ -254,6 +254,16 @@ add_custom_command(TARGET snake POST_BUILD
 
 **Build Time**: ~15 seconds
 **Output**: `build/bin/Release/snake.exe`
+**Runtime Dependencies**: SFML DLLs (copied at build time)
+
+### Karting Game
+
+**Location**: `games/karting/CMakeLists.txt` and `server/karting/CMakeLists.txt`
+
+Similar structure to Snake but with separate server implementation for physics simulation.
+
+**Build Time**: ~15 seconds
+**Output**: `build/bin/Release/karting.exe`
 **Runtime Dependencies**: SFML DLLs (copied at build time)
 
 ## Adding a New Game
@@ -319,9 +329,12 @@ cmake --build build --config Release --target my_game
 ```
 build/bin/Release/
 ├── GameLibraryLauncher.exe          # Main launcher
-├── GameServer.exe                   # Game server
-├── snake.exe                        # Snake game
+├── SnakeGameServer.exe              # Snake game server
+├── KartingGameServer.exe            # Karting game server
+├── snake.exe                        # Snake game client
 ├── snake.ico                        # Game icon
+├── karting.exe                      # Karting game client
+├── karting.ico                      # Game icon
 ├── Qt6Core.dll                      # Qt libraries
 ├── Qt6Gui.dll
 ├── Qt6Widgets.dll
@@ -511,7 +524,7 @@ Current project is Windows-focused but structured for portability.
 - First build: `./build.bat`
 - Check output in `build/bin/Release/`
 - Run GameServer and launcher
-- See [Troubleshooting](08_DEBUGGING_AND_TESTING.md) if issues
+- See [Troubleshooting](09_DEBUGGING_AND_TESTING.md) if issues
 
 ## Reference Documentation
 

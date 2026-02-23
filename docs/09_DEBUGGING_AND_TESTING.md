@@ -287,8 +287,8 @@ ctest -C Release
 Total Test time (real) = 0.12 sec
 ```
 
-**Coverage**: 33 tests across 4 suites:
-- GameLogic (10 tests): State management, player initialization
+**Coverage**: 33+ tests across 4+ suites:
+- GameLogic (10+ tests): State management, player initialization (Snake and Karting)
 - PlayerIds (7 tests): ID assignment logic
 - ControllerManagement (6 tests): Controller tracking
 - GameMechanics (10 tests): Snake movement, collision, boundaries
@@ -364,10 +364,10 @@ Test end-to-end user scenarios:
 - [ ] Score calculated correctly
 - [ ] End screen shows score
 
-#### Multiplayer Test (2 Controllers)
+#### Multiplayer Test (2 Controllers) - Snake
 
 1. Connect keyboard and 1 joystick
-2. Start GameServer
+2. Start GameServer and SnakeGameServer
 3. Start GameLibraryLauncher
 4. Click Snake game
 5. Verify "2 players connected"
@@ -381,6 +381,26 @@ Test end-to-end user scenarios:
 - [ ] Different starting positions
 - [ ] Both snakes interact correctly (collisions)
 - [ ] Final scores reflect both players
+- [ ] Back to Start works
+
+#### Multiplayer Test (2 Controllers) - Karting
+
+1. Connect keyboard and 1 joystick
+2. Start GameServer and KartingGameServer
+3. Start GameLibraryLauncher
+4. Click Karting game
+5. Verify "2 players connected"
+6. Click START GAME
+7. Use keyboard for Player 0, joystick for Player 1
+8. Complete 3-lap race
+
+**Validation**:
+- [ ] 2 cars render at track positions
+- [ ] Each car responds to correct input device (throttle + steer)
+- [ ] Speed changes smoothly with throttle
+- [ ] Steering affects rotation
+- [ ] Lap counter displays and increments
+- [ ] Finish order matches lap count
 - [ ] Back to Start works
 
 #### Network Multiplayer Test (2 PCs)
@@ -506,13 +526,14 @@ echo "Networking tests:" && findstr "OK\|FAILED" networking_results.txt
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | `ModuleNotFoundError: No module named 'json'` | Python installation issue | Use `python -m pip install --upgrade setuptools` |
-| Server not accepting connections | Wrong IP/port (default: 8765) | Verify GameServer running: `netstat -an \| findstr 8765` or `netstat -ano \| findstr GameServer` |
-| Protocol tests fail | JSON validation regression | Check recent changes to protocol messages in GameServer.cpp |
-| Network test timeout | Server slow to respond or wrong port | Verify port 8765 is listening. Start server: `.\build\bin\Release\GameServer.exe` |
+| Server not accepting connections | Wrong IP/port (defaults: 8765 GameServer, 8766+ for game servers) | Verify GameServer and game server running: `netstat -an | findstr 876` |
+| Protocol tests fail | JSON validation regression | Check recent changes to protocol messages in GameServer.cpp or game-specific GameServer.cpp |
+| Network test timeout | Server(s) slow to respond or wrong port | Verify ports are listening. Start servers: `.\ build\bin\Release\GameServer.exe` and game server |
 | Memory warnings in output | Not related to test failures | Safe to ignore, Python cleanup warnings |
+| Karting game lag | Server tick rate too slow or not running | Verify KartingGameServer tick rate is 30ms (0.03f), not 120ms |
 
 ## Next Steps
 
 - See [Core Architecture](01_CORE_ARCHITECTURE.md) for system design
 - See [Game Protocol](03_GAME_PROTOCOL.md) for message details
-- See [Adding New Games](06_ADDING_NEW_GAMES.md) for extending framework
+- See [Adding New Games](07_ADDING_NEW_GAMES.md) for extending framework
